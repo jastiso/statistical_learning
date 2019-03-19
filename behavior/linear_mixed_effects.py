@@ -18,7 +18,7 @@ import statsmodels.formula.api as smf
 
 # read data
 top_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/behavioral_data_raw/'
-subj = [1,2]
+subj = [2,4]
 
 #%% Load and concatenate data
 
@@ -31,7 +31,7 @@ for i in subj:
     
 #%% Linear Mixed effects model
     
- md = smf.mixedlm("rt_raw ~ transition*order*graph + lag10 + recency + walk + hand + hand_transition", data, groups=data["subj"])
+md = smf.mixedlm("rt_raw ~ transition*order + lag10 + recency + walk + hand + hand_transition", data, groups=data["subj"])
 
 mdf = md.fit()   
 
