@@ -76,30 +76,24 @@ end
 %% Plot raw data by type and elec
 
 rt = events(:,2) - events(:,1);
-%ERPs = nan(nElec, max(rt), nTrial);
-%x_vect = (1:(max(rt)+1))./srate;
-x_vect = (1:250)./srate;
-ERPs = nan(nElec, 250, nTrial);
+ERPs = zeros(nElec, max(rt), nTrial);
 
 for t = 1:nTrial
-   %curr = data(:,events(t,1):(events(t,2)));
-   curr = data(:,(events(t,2)-249):events(t,2));
-   %ERPs(:,1:rt(t)+1,t) = curr;
-   ERPs(:,:,t) = curr;
+   curr = data(:,events(t,1):(events(t,2)));
+   ERPs(:,1:rt(t)+1,t) = curr;
 end
 
-avg_erp_trans = squeeze(nanmean(ERPs(:,:,logical(is_crosscluster)),3));
-avg_erp_within = squeeze(nanmean(ERPs(:,:,logical(~is_crosscluster)),3));
-se_erp_trans = squeeze(nanstd(ERPs(:,:,logical(is_crosscluster)),[],3))./sqrt(sum(is_crosscluster));
-se_erp_within = squeeze(nanstd(ERPs(:,:,logical(is_crosscluster)),[],3))./sqrt(sum(~is_crosscluster));
+avg_erp_trans = squeeze(mean(ERPs(:,:,logical(is_crosscluster)),3));
+avg_erp_within = squeeze(mean(ERPs(:,:,logical(~is_crosscluster)),3));
+se_erp_trans = squeeze(std(ERPs(i,:,logical(is_crosscluster)),[],3))./sqrt(sum(is_crosscluster));
+se_erp_within = squeeze(std(ERPs(i,:,logical(is_crosscluster)),[],3))./sqrt(sum(~is_crosscluster));
 
 for i = 1:nElec
     figure(1); clf;
-    plot(x_vect, avg_erp_trans(i,:),  "color", rgb("steelblue"), 'linewidth', 2); hold on
-    shade_plot(x_vect, avg_erp_trans(i,:),  se_erp_trans(i,:), rgb("slategrey"), 0.4);
-    plot(x_vect, avg_erp_within(i,:),  "color", rgb("chocolate"), 'linewidth', 2); hold on
-    shade_plot(x_vect, avg_erp_within(i,:),  se_erp_within(i,:), rgb("sandybrown"), 0.4);
-    legend([{'Cross'}, {'Cross SE'}, {'Within'}, {'Within SE'}])
+    plot(avg_erp_trans(i,:),  "color", rgb("steelblue"), 'linewidth', 2); hold on
+    shade_plot(0:max(rt), avg_erp_trans(i,:),  se_erp_trans(i,:), rgb("slategrey"), 0.4);
+    plot(avg_erp_within(i,:),  "color", rgb("chocolate"), 'linewidth', 2); hold on
+    shade_plot(0:max(rt), avg_erp_within(i,:),  se_erp_within(i,:), rgb("sandybrown"), 0.4);
     title(elec_labels{i})
-    saveas(gca, [img_dir, '/erp_', elec_labels{i}, '_resp.png'], 'png')
+    saveas(gca, [img_dir, '/psd_', elec_labels{i}, '.png'], 'png')
 end

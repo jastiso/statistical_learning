@@ -42,6 +42,9 @@ if ~exist([save_dir, subj], 'dir')
     mkdir([save_dir, subj])
 end
 
+pd(isnan(pd)) = 0;
+data(isnan(data)) = 0;
+
 save([save_dir, subj, '/raw_data.mat'], 'data')
 save([save_dir, subj, '/raw_pd.mat'], 'pd')
 save([save_dir, subj, '/header.mat'], 'labels', 'srate', 'HUP_ID', 'subj')
