@@ -67,14 +67,8 @@ pd = data(pd_idx,:);
 data = data(~rm_idx,:);
  
 pd = pd(:,~(isnan(pd(1,:))));
-data = data(:,~(isnan(data(1,:))));
+data(isnan(data)) = 0;
 
-%check that pd and data are the same length
-if size(pd,2) ~= size(data,2)
-    warning('The length of your PD and data are not the same...something went wrong')
-else
-    save([save_dir, subj, '/raw_data.mat'], 'data')
-    save([save_dir, subj, '/raw_pd.mat'], 'pd')
-    save([save_dir, subj, '/header.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
-end
-
+save([save_dir, subj, '/raw_data.mat'], 'data')
+save([save_dir, subj, '/raw_pd.mat'], 'pd')
+save([save_dir, subj, '/header.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
