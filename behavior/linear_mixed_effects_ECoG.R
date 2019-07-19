@@ -11,14 +11,14 @@ library(ez)
 library(plyr)
 setwd("/Users/stiso/Documents/Python/graphLearning/ECoG data/")
 
-df = read_csv('behavior_preprocessed/group_behavior.csv')
+df = read.csv('behavior_preprocessed/group_behavior.csv')
 summary(df)
 
 
 ######
 # Clean up - remove columns you dont need, only get correct trials, etc
 
-df_clean = subset(df, select = -c(X1,ISI_raw,onset_raw,path,resp_raw,pID))
+df_clean = subset(df, select = -c(ISI_raw,onset_raw,path,resp_raw,pID))
 summary(df_clean)
 
 #make factors
@@ -75,6 +75,9 @@ anova(stat_graph)
 stat_surprisal = lmer(data=df_modular, rt_raw~scale(order)*transition + finger + hand + hand_transition +  block + scale(lag10) + scale(recency) + (1 + scale(order)*transition + scale(lag10) + scale(recency) |subj))
 anova(stat_surprisal)
 
+# no pooling
+stat_no_pool = lm(data=df_modular, rt_raw~scale(order)*transition + resp + hand_transition +  block + scale(lag10) + scale(recency) + subj)
+anova(stat_no_pool)
 
 ##################
 # Plot
@@ -88,3 +91,42 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + 
   geom_ribbon(aes(x=order, y=mean_rt, ymax=mean_rt+sd_rt, ymin = mean_rt-sd_rt), color = 'grey', alpha = 0.2)
 ggsave(paste( 'behavior_preprocessed/images/rt_mTurk.png', sep = ''))
+
+
+avg_cluster = df_modular %>%
+  group_by(order, transition) %>%
+  dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
+avg_cluster$transition = factor(avg_cluster$transition,levels(avg_cluster$transition)[c(2,1)])
+
+plot = ggplot(data=avg_cluster, aes(x=order, y=mean_rt, color=transition))
+plot + geom_line(size=1) + ggtitle('RT over time, by Transition') +
+  theme_minimal() + labs(x = 'Trial', y = 'RT (ms)')
+ggsave(paste( 'behavior_preprocessed/images/rt_mTurk_cc.png', sep = ''))
+
+
+nbin = 30
+bin_data_cluster = data_frame(trial = c(tapply(avg_cluster$order, cut(avg_cluster$order, nbin), mean), 
+                                        tapply(avg_cluster$order, cut(avg_cluster$order, nbin), mean)),
+                              mean_rt = c(tapply(filter(avg_cluster, transition == "False")$mean_rt, cut(filter(avg_cluster, transition == "False")$order, nbin), mean), 
+                                          tapply(filter(avg_cluster, transition == "True")$mean_rt, cut(filter(avg_cluster, transition == "True")$order, nbin), mean)),
+                              transition = c(rep("False", times = length(tapply(avg_cluster$order, cut(avg_cluster$order, nbin), mean))), 
+                                                  rep("True", times = length(tapply(avg_cluster$order, cut(avg_cluster$order, nbin), mean)))))
+
+
+plot = ggplot(data=bin_data_cluster, aes(x=trial, y=mean_rt, color = transition))
+plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
+  theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(215/255,190/255,123/255), rgb(33/255,67/255,104/255))) +
+  ggsave(paste( 'behavior_preprocessed/images/rt_mTurk_bin_cc.pdf', sep = ''))
+
+
+
+####################
+# Individual subj model
+
+
+stat_surprisal = lm(data=filter(df_modular, subj == 2), rt_raw~scale(order)*transition + finger + hand + hand_transition +  block + scale(lag10) + scale(recency))
+anova(stat_surprisal)
+
+stat_surprisal = lm(data=filter(df_modular, subj == 4), rt_raw~scale(order)*transition + finger + hand + hand_transition +  block + scale(lag10) + scale(recency))
+anova(stat_surprisal)
+

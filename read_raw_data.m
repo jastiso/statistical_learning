@@ -42,7 +42,7 @@ if ~exist([save_dir, subj], 'dir')
     mkdir([save_dir, subj])
 end
 
-pd(isnan(pd)) = 0;
+pd = pd(:,~pd(isnan(pd));
 data(isnan(data)) = 0;
 
 save([save_dir, subj, '/raw_data.mat'], 'data')
