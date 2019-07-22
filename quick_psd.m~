@@ -19,11 +19,10 @@ if ~exist(img_dir, 'dir')
 end
 
 % load stuff
-load([save_dir, subj, '/raw_data.mat'])
-load([save_dir, subj, '/header.mat'], 'labels', 'srate', 'HUP_ID', 'subj')
+load([save_dir, subj, '/data_clean.mat'])
+load([save_dir, subj, '/header_clean.mat'], 'labels', 'srate', 'HUP_ID', 'subj')
 load([save_dir, subj, '/events.mat'])
 load([save_dir, subj, '/trans_idx.mat'])
-elec_labels = labels([1:3, 6:end]);
 
 % analysis varaibles
 freqs = 0:2:srate/2;
@@ -175,7 +174,7 @@ sig = zeros(win_length + 1, nWin);
 for i = 1:nWin
     onset = events(i,1);
     %sig(:,i) = data(j,onset:(onset + win_length));
-    sig(:,i) = data(j,ceil((i-1)*step) : ceil((i-1)*step)+win_length);
+    sig(:,i) = data(j,ceil((i-1)*step) + 1 : ceil((i-1)*step)+win_length+1);
 end
 
 % spec = amri_sig_fractal(sig,srate,...); optional arguments frange,

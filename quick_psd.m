@@ -4,7 +4,7 @@
 % quick preliminary data for grants I have a matlab one too. Also for
 % checking my python results
 
-addpath(genpath('/Users/stiso/Documents/MATLAB/ieeg-matlab-1.13.2/'))
+addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(genpath('/Users/stiso/Documents/MATLAB/eeglab_current/'))
 % define variables
 HUP_ID = 'HUP187';
@@ -19,11 +19,10 @@ if ~exist(img_dir, 'dir')
 end
 
 % load stuff
-load([save_dir, subj, '/raw_data.mat'])
-load([save_dir, subj, '/header.mat'], 'labels', 'srate', 'HUP_ID', 'subj')
+load([save_dir, subj, '/data_clean.mat'])
+load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
 load([save_dir, subj, '/events.mat'])
 load([save_dir, subj, '/trans_idx.mat'])
-elec_labels = labels([1:3, 6:end]);
 
 % analysis varaibles
 freqs = 0:2:srate/2;
@@ -45,6 +44,7 @@ end
 
 %% Format for r
 
+alt_idx = circshift(is_crosscluster,1);
 psds_vect = reshape(psds, [], 1);
 freq_id = repmat(freq', 1, nElec*nTrial)';
 elec_id = repmat(reshape(repmat(1:nElec, nFreq, 1), [] , 1), nTrial, 1);
@@ -69,17 +69,12 @@ end
 
 %% Average by cross cluster
 
-alt_idx = circshift(is_crosscluster,1);
-
 avg_trans = mean(psds(:,:,logical(is_crosscluster)),3);
 avg_alt = mean(psds(:,:,logical(alt_idx)),3);
 avg_within = mean(psds(:,:,~logical(is_crosscluster)),3);
 se_trans = std(psds(:,:,logical(is_crosscluster)),[],3)./sqrt(sum(is_crosscluster));
 se_alt = std(psds(:,:,logical(alt_idx)),[],3)./sqrt(sum(alt_idx));
 se_within = std(psds(:,:,~logical(is_crosscluster)),[],3)./sqrt(sum(~is_crosscluster));
-
-% remove PD
-elec_labels = labels([1:2, 5:end]);
 
 for i = 1:nElec
     figure(1); clf;
