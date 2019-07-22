@@ -4,7 +4,7 @@
 % quick preliminary data for grants I have a matlab one too. Also for
 % checking my python results
 
-addpath(genpath('/Users/stiso/Documents/MATLAB/ieeg-matlab-1.13.2/'))
+addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(genpath('/Users/stiso/Documents/MATLAB/eeglab_current/'))
 % define variables
 HUP_ID = 'HUP187';
@@ -20,7 +20,7 @@ end
 
 % load stuff
 load([save_dir, subj, '/data_clean.mat'])
-load([save_dir, subj, '/header_clean.mat'], 'labels', 'srate', 'HUP_ID', 'subj')
+load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
 load([save_dir, subj, '/events.mat'])
 load([save_dir, subj, '/trans_idx.mat'])
 
@@ -29,6 +29,10 @@ freqs = 0:2:srate/2;
 nTrial = size(events,1);
 nElec = size(data,1);
 nFreq = numel(freqs);
+
+% timing varaibles
+exp_st = events(1);
+exp_en = events(end);
 
 %% Get PSD for each trial
 % using Welch's method for noe
@@ -44,6 +48,7 @@ end
 
 %% Format for r
 
+alt_idx = circshift(is_crosscluster,1);
 psds_vect = reshape(psds, [], 1);
 freq_id = repmat(freq', 1, nElec*nTrial)';
 elec_id = repmat(reshape(repmat(1:nElec, nFreq, 1), [] , 1), nTrial, 1);
@@ -68,17 +73,12 @@ end
 
 %% Average by cross cluster
 
-alt_idx = circshift(is_crosscluster,1);
-
 avg_trans = mean(psds(:,:,logical(is_crosscluster)),3);
 avg_alt = mean(psds(:,:,logical(alt_idx)),3);
 avg_within = mean(psds(:,:,~logical(is_crosscluster)),3);
 se_trans = std(psds(:,:,logical(is_crosscluster)),[],3)./sqrt(sum(is_crosscluster));
 se_alt = std(psds(:,:,logical(alt_idx)),[],3)./sqrt(sum(alt_idx));
 se_within = std(psds(:,:,~logical(is_crosscluster)),[],3)./sqrt(sum(~is_crosscluster));
-
-% remove PD
-elec_labels = labels([1:2, 5:end]);
 
 for i = 1:nElec
     figure(1); clf;
@@ -167,19 +167,21 @@ end
 %win_length = floor((min(rt) + 50)*(srate/1000)) - 1;
 win_length = floor((3000)*(srate/1000)) - 1;
 step = floor((1000)*(srate/1000));
-nWin = floor(size(data,2)/win_length);
+nWin = floor((exp_en-exp_st)/win_length);
+
 
 for j = 1:nElec
 sig = zeros(win_length + 1, nWin);
 for i = 1:nWin
     onset = events(i,1);
     %sig(:,i) = data(j,onset:(onset + win_length));
-    sig(:,i) = data(j,ceil((i-1)*step) + 1 : ceil((i-1)*step)+win_length+1);
+    exp_st + (ceil((i-1)*step) + 1)
+    sig(:,i) = data(j,exp_st + (ceil((i-1)*step) + 1) : exp_st + ceil((i-1)*step)+win_length+1);
 end
 
 % spec = amri_sig_fractal(sig,srate,...); optional arguments frange,
 % detrend, filter
-spec = amri_sig_fractal(sig,srate, 'detrend', 1, 'filter', 1);
+spec = amri_sig_fractal(sig,srate, 'frange', [2, 150], 'detrend', 1, 'filter', 1);
 
 % plot
 % show averaged fractal and oscillatory power spectrum

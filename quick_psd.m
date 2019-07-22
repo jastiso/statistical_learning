@@ -30,6 +30,10 @@ nTrial = size(events,1);
 nElec = size(data,1);
 nFreq = numel(freqs);
 
+% timing varaibles
+exp_st = events(1);
+exp_en = events(end);
+
 %% Get PSD for each trial
 % using Welch's method for noe
 
@@ -161,21 +165,25 @@ end
 % separates scale free from oscillatory component of the power spectra.
 
 %win_length = floor((min(rt) + 50)*(srate/1000)) - 1;
-win_length = floor((3000)*(srate/1000)) - 1;
-step = floor((1000)*(srate/1000));
-nWin = floor(size(data,2)/win_length);
+win_length = floor((3000)*(srate/1000)) - 1; % in samples
+step = floor(1000*(srate/1000));
+nWin = floor(((exp_en-exp_st)*(srate/1000) - win_length)/step); % (length - win)/step
+
 
 for j = 1:nElec
 sig = zeros(win_length + 1, nWin);
 for i = 1:nWin
     onset = events(i,1);
     %sig(:,i) = data(j,onset:(onset + win_length));
-    sig(:,i) = data(j,ceil((i-1)*step) + 1 : ceil((i-1)*step)+win_length+1);
+    st = ceil((exp_st*(srate/1000)) + (i-1)*step + 1);
+    en = ceil(st + win_length);
+    
+    sig(:,i) = data(j, st:en);
 end
 
 % spec = amri_sig_fractal(sig,srate,...); optional arguments frange,
 % detrend, filter
-spec = amri_sig_fractal(sig,srate, 'detrend', 1, 'filter', 1);
+spec = amri_sig_fractal(sig,srate, 'frange', [2, 150], 'detrend', 1, 'filter', 1);
 
 % plot
 % show averaged fractal and oscillatory power spectrum

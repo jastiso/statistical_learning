@@ -1,0 +1,29 @@
+function [AAL_aligned] = AAL_match(AAL,clinical)
+% Match up AAL and clinical labels
+%   basically you have to manually figure out when you are missing elecs in
+%   the sequence. i.e. you have RB1-9, and 11-12, but not 10.
+
+% remove ROC and LOC if present
+ref = cellfun(@(x) strcmpi(x,'roc') | strcmpi(x,'loc'), clinical);
+clinical = clinical(~ref);
+
+% get electrodes
+prefix = cellfun(@(x) x(isstrprop(x,'alpha')),elec_labels, 'UniformOutput', 0);
+groups = unique(prefix);
+nGroup = numel(groups);
+
+% contacts are typically groups of 8 or 12
+for i = 1:nGroup
+    curr = groups(i);
+    group_idx = cellfun(@(x) strcmpi(curr,x), prefix);
+    curr_elec = clinical(group_idx);
+    last_elec = curr_elec{end};
+    % assuming 2 positions for numbers
+    if strcmpi(str2double(last_elec(end-2:end)),sum(group_idx))
+        
+    end
+end
+
+
+end
+

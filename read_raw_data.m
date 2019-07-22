@@ -61,7 +61,8 @@ labels = session.data.channelLabels(:,1); % only get the first row, these are no
 pd_idx = cellfun(@(x) contains(x,'DC'),labels);
 % get only iEEG elecs
 scalp_eeg_idx = ~cellfun(@(x) strcmpi(x(1),'r') | strcmp(x(1),'l') ,labels);
-rm_idx = pd_idx | scalp_eeg_idx;
+ref = cellfun(@(x) strcmpi(x,'roc') | strcmpi(x,'loc'), clinical);
+rm_idx = pd_idx | scalp_eeg_idx | ref;
 elec_labels = labels(~rm_idx);
 pd = data(pd_idx,:);
 data = data(~rm_idx,:);
