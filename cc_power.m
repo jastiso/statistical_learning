@@ -33,9 +33,10 @@ exp_en = events(end);
 %% get extra event variables
 
 trans_nodes = [4,5,9,0];
-alt_nodes = [0,2,7,5];
+alt_nodes = [0,1,6,5];
 
 %get only good trials
+good_trials = logical(correct) & cutoff;
 good_events = events(logical(correct) & cutoff,:);
 
 trans_idx = false(nTrial,1);
@@ -55,6 +56,7 @@ alt_idx = alt_idx(logical(correct) & cutoff);
 cc_events = good_events(trans_idx,:);
 alt_events = good_events(alt_idx,:);
 
+
 %% Field trip format
 
 % only elecs with signigifant peak
@@ -64,17 +66,8 @@ peaks = peaks((logical(ps)));
 AAL = AAL(logical(ps),:);
 nElec = size(data,1);
 
-% cross cluster data
-ft_data = [];
-ft_data.trial{1,1} = data;
-ft_data.time{1,1} = (1/srate):(1/srate):(size(data,2)/srate);
-ft_data.label = elec_labels;
-ft_data.fsample = srate;
-ft_data.nSamples = size(data,2);
-
-cfg = [];
-cfg.trl = [good_events, zeros(size(good_events,1),1)];
-ft_data = ft_redefinetrial(cfg, ft_data);
+% firldtrip data
+ft_data = fieldtrip_format(data, srate, elec_labels, [good_events, zeros(size(good_events,1),1)]);
 
 nGoodTrial = size(good_events,1);
 
@@ -128,12 +121,60 @@ for i = 1:nElec
     peak_power(i,:) = pow.powspctrm(:,i,peak_idx);
 end
 
-sig = cc_ps < 0.05/nElec;
+sig = cc_ps < 0.05;
 sum(cc_ps < 0.05/nElec)
 
 cc_ps(sig)
 means(sig)
 AAL(sig,:)
+find(sig)
 
 % get data for python anaylsis
 save([r_dir, 'peak_power.mat'], 'peak_power', 'elec_labels', 'AAL')
+
+%% Plots
+
+nNode = numel(unique(walk));
+RT = zeros(nNode);
+power_node = zeros(nNode, nNode, nElec);
+
+for i = 1:nElec
+    
+    count_node = zeros(nNode);
+    
+    cnt = 1; % not zero because j counter starts at 2
+    for j = 2:numel(walk)
+        prev = walk(j-1) + 1;
+        curr = walk(j) + 1;
+        if good_trials(j)
+            cnt = cnt + 1;
+            power_node(prev,curr,i) = power_node(prev,curr,i) + peak_power(i,cnt);
+            count_node(prev,curr) = count_node(prev,curr) + 1;
+            
+            if i == nElec % only need to do this once
+                RT(prev,curr) = RT(prev,curr) + events(cnt,2) - events(cnt,1);
+            end
+        end
+    end
+    power_node(:,:,i) = power_node(:,:,i)./count_node;
+    
+    %plot
+    figure(3); clf
+    imagesc(power_node(:,:,i)); c = colorbar;
+    title(AAL{i})
+    xlabel('current node')
+    ylabel('previous node')
+    c.Label.String = 'power';
+    saveas(gca, [img_dir, '/pow_by_trans_', elec_labels{i}, '.png'], 'png')
+    
+end
+
+RT = RT./count_node;
+figure(4); clf
+imagesc(RT); c = colorbar;
+xlabel('current node')
+ylabel('previous node')
+c.Label.String = 'RT';
+saveas(gca, [img_dir, '/rt_by_trans.png'], 'png')
+
+
