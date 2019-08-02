@@ -51,23 +51,17 @@ end
 
 % there are limits on how much data you can request at once.
 % The current (hz * channels * seconds) max is (500 * 130 * 2000)
-data1 = session.data.getvalues(st:dur,1:nElec/2);
-data1 = data1';
+data = session.data.getvalues(st:dur,1:nElec/2);
+data = data';
 
-data2 = session.data.getvalues(st:dur,(nElec/2 + 1):nElec);
-data2 = data2';
-
-data = [data1; data2];
-
-clear data1 data2
 %% Save raw data before individual preprocessing
 
 % get other useful stuff from header
 labels = session.data.channelLabels(:,1); % only get the first row, these are not bipolar referenced yet
 pd_idx = cellfun(@(x) contains(x,'DC'),labels);
 % get only iEEG elecs
-scalp_eeg_idx = ~cellfun(@(x) strcmpi(x(1),'r') | strcmpi(x(1),'l') ,labels);
-ref = cellfun(@(x) strcmpi(x,'roc') | strcmpi(x,'loc'), labels);
+scalp_eeg_idx = ~cellfun(@(x) strcmpi(x(1),'r') | strcmp(x(1),'l') ,labels);
+ref = cellfun(@(x) strcmpi(x,'roc') | strcmpi(x,'loc'), clinical);
 rm_idx = pd_idx | scalp_eeg_idx | ref;
 elec_labels = labels(~rm_idx);
 pd = data(pd_idx,:);

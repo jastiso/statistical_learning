@@ -1,4 +1,4 @@
-%% Preprocessing for subj 2, HUP187
+%% Preprocessing for subj X, HUPXXX
 
 addpath(genpath('/Users/stiso/Documents/MATLAB/eeglab_current/'))
 
