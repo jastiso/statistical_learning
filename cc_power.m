@@ -3,8 +3,7 @@
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
-HUP_ID = 'HUP187';
-subj = '2';
+subj = '4';
 save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
 img_dir = ['/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_img/subj', subj];
@@ -34,6 +33,8 @@ exp_en = events(end);
 
 trans_nodes = [4,5,9,0];
 alt_nodes = [0,1,6,5];
+module0 = [0 1 2 3 4];
+module1 = [5 6 7 8 9];
 
 %get only good trials
 good_trials = logical(correct) & cutoff;
@@ -50,8 +51,22 @@ for i = 2:nTrial
     end
 end
 
+% constrast for increasign activity within a module
+module_idx = zeros(nTrial,1);
+prev_mod = any(find(walk(1) == module1)); % flag for which module we're in
+for i = 2:nTrial
+    curr_mod = any(find(walk(i) == module1));
+    if prev_mod == curr_mod
+       module_idx(i) = module_idx(i-1) + 1; 
+    else
+       module_idx(i) = 0; 
+    end
+    prev_mod = curr_mod;
+end
+
 % match to events
 trans_idx = trans_idx(logical(correct) & cutoff);
+module_idx = module_idx(logical(correct) & cutoff);
 alt_idx = alt_idx(logical(correct) & cutoff);
 cc_events = good_events(trans_idx,:);
 alt_events = good_events(alt_idx,:);
@@ -71,16 +86,23 @@ ft_data = fieldtrip_format(data, srate, elec_labels, [good_events, zeros(size(go
 
 nGoodTrial = size(good_events,1);
 
+% demean and detrend data
+for i = 1:numel(ft_data.trial)
+    ft_data.trial{i} = ft_data.trial{i} - mean(ft_data.trial{i},2);
+    ft_data.trial{i} = detrend(ft_data.trial{i});
+end
+
 
 %% Get power at peak index
 
 cfg = [];
-cfg.method = 'mtmfft';
+cfg.method = 'mtmfft'; % only single taper for low freqs
+cfg.taper = 'hanning';
 cfg.ouput = 'pow';
 cfg.pad = 'nextpow2';
 cfg.foi = unique(round(peaks));
 cfg.keeptrials = 'yes';
-cfg.tapsmofrq = 4; %smoothing index - check if same effect is present for others
+%cfg.tapsmofrq = 4; %smoothing index - check if same effect is present for others
 
 pow = ft_freqanalysis(cfg,ft_data);
 
@@ -104,8 +126,8 @@ for i = 1:nElec
     xlabel('log(power)')
     %pause(0.5)
     
-    [p] = permtest(log10(pow.powspctrm(alt_idx,i,peak_idx)), log10(pow.powspctrm(trans_idx,i,peak_idx)), 10000, 'conservative');
-    means(i) = mean(log10(pow.powspctrm(alt_idx,i,peak_idx))) - log10(mean(pow.powspctrm(trans_idx,i,peak_idx)));
+    [p] = permtest(log10(pow.powspctrm(trans_idx,i,peak_idx)), log10(pow.powspctrm(alt_idx,i,peak_idx)), 10000, 'conservative');
+    means(i) = mean(log10(pow.powspctrm(trans_idx,i,peak_idx))) - log10(mean(pow.powspctrm(alt_idx,i,peak_idx)));
     cc_ps(i) = p;
     
     
@@ -118,7 +140,7 @@ for i = 1:nElec
     pause(0.01);
     
     %add to peak data
-    peak_power(i,:) = pow.powspctrm(:,i,peak_idx);
+    peak_power(i,:) = log10(pow.powspctrm(:,i,peak_idx));
 end
 
 sig = cc_ps < 0.05;
@@ -128,9 +150,12 @@ cc_ps(sig)
 means(sig)
 AAL(sig,:)
 find(sig)
+%things for r
+region = AAL(1,:);
+good_trial_idx = trial(good_trials);
 
 % get data for python anaylsis
-save([r_dir, 'peak_power.mat'], 'peak_power', 'elec_labels', 'AAL')
+save([r_dir, 'subj', subj, '/peak_power.mat'], 'peak_power', 'elec_labels', 'region', 'good_trial_idx', 'module_idx')
 
 %% Plots
 
@@ -142,7 +167,7 @@ for i = 1:nElec
     
     count_node = zeros(nNode);
     
-    cnt = 1; % not zero because j counter starts at 2
+    cnt = 0; % not zero because j counter starts at 2
     for j = 2:numel(walk)
         prev = walk(j-1) + 1;
         curr = walk(j) + 1;

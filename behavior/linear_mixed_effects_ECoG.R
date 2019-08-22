@@ -32,7 +32,7 @@ summary(df_clean)
 
 # remove incorrect trials
 df_correct = dplyr::filter(df_clean, correct_raw == 1)
-df_correct = filter(df_correct, rt_raw > 0.05)
+df_correct = dplyr::filter(df_correct, rt_raw > 0.05)
 
 # add finger
 # log order, and get continuous trial
@@ -59,6 +59,7 @@ df_correct$finger = as.factor(finger)
 
 df_modular = dplyr::filter(df_correct, graph == "modular")
 
+save(df_correct, file = 'behavior_preprocessed/clean.RData')
 
 
 

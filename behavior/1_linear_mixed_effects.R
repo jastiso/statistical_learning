@@ -128,6 +128,7 @@ df_left = filter(df_modular, hand == 'left')
 df_right = filter(df_modular, hand == 'right')
 summary(df_correct)
 
+
 #################
 # LMER
 

@@ -13,6 +13,12 @@ function [rmv] = reject_elecs(data,thr)
 k = kurtosis(data');                % kurtosis of ts -- are there weird peaks? if so, maybe artifact?
 zk = zscore(k);                     % zscore kurtosis
 
-rmv = zk >= thr;                    % remove channels that show more kurtosis
+rm = zk >= thr;                % remove channels that show more kurtosis
+
+% now check line length
+ll = sum(abs(diff(data,1,2)),2);
+rm_ll = ll > 4*mean(ll);
+
+rmv = rm' | rm_ll;
 end
 

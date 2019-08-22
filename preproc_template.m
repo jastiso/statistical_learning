@@ -37,6 +37,15 @@ elec_labels = elec_labels(~rmv,:);
 
 spectopo(data, 0, srate)
 
+% filter out 60 Hz harmonics
+[b,a] = butter(4, [59/(srate/2), 61/(srate/2)], 'stop');
+data = filtfilt(b,a,data')';
+
+[b,a] = butter(4, [119/(srate/2), 121/(srate/2)], 'stop');
+data = filtfilt(b,a,data')';
+
+[b,a] = butter(4, [179/(srate/2), 181/(srate/2)], 'stop');
+data = filtfilt(b,a,data')';
 
 %% CAR
 % if data looks to have different levels of noise based on elec, might want
