@@ -10,15 +10,21 @@ library(wesanderson)
 library(R.matlab)
 library(ez)
 library(plyr)
+library(lm.beta)
 setwd("/Users/stiso/Documents/Python/graphLearning/ECoG data/")
 
-s = 4
+s = 2
 load('behavior_preprocessed/clean.RData')
 data = readMat(paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/peak_power.mat',sep=""))
 
 # format 
 df_subj = dplyr::filter(df_correct, subj == s)
 elecs = unlist(data$elec.labels)
+regions = unlist(data$region)
+
+# get only elecs in grey matter
+elecs = elecs[unlist(lapply(regions, function(x) x != "No_label"))]
+
 df_pow <- data.frame(matrix(ncol = length(elecs) + 2, nrow = length(t(data$good.trial.idx))))
 nam <- c("order", "mod", elecs)
 colnames(df_pow) <- nam
@@ -39,26 +45,42 @@ df_fit = df[,!(names(df) %in% drops)]
 #save all the models
 models = list()
 ps = list()
+betas = list()
 for (e in elecs){
   formula = paste(e, '~ transition*order + finger + hand + hand_transition')
   fit = lm(data=df_fit, formula)
   anova(fit)
   ps[[e]] = (anova(fit)$`Pr(>F)`[1])
+  betas[[e]] = summary(lm.beta(fit))$coefficients[2,2] # standard beta
   models[[e]] = fit
 }
 p.adjust(ps, n=length(elecs), method="fdr")
 sum(p.adjust(ps, n=length(elecs), method="fdr") < 0.05)
+betas[p.adjust(ps, n=length(elecs), method="fdr") < 0.05]
+print(paste("Electrode with statistically significant module contrast: ", unlist(elecs[p.adjust(ps, n=length(elecs), method="fdr") < 0.05]), sep=""))
+# save file
+mod_stats = data.frame(elecs = elecs, p = p.adjust(ps, n=length(elecs), method="fdr"), betas = unlist(betas), 
+                       region = regions[unlist(lapply(regions, function(x) x != "No_label"))])
+write.csv(mod_stats, paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/mod_stats.csv', sep=""))
 
 # repeat for ramping contrast
-models_mod = list()
-ps_mod = list()
+models_ramp = list()
+ps_ramp = list()
+betas_ramp = list()
 for (e in elecs){
   formula = paste(e, '~ mod*order + finger + hand + hand_transition')
   fit = lm(data=df_fit, formula)
   anova(fit)
-  ps_mod[[e]] = (anova(fit)$`Pr(>F)`[1])
-  models_mod[[e]] = fit
+  ps_ramp[[e]] = (anova(fit)$`Pr(>F)`[1])
+  betas_ramp[[e]] = summary(lm.beta(fit))$coefficients[2,2] # standard beta
+  models_ramp[[e]] = fit
 }
-p.adjust(ps_mod, n=length(elecs), method="fdr")
-sum(p.adjust(ps_mod, n=length(elecs), method="fdr") < 0.05)
+p.adjust(ps_ramp, n=length(elecs), method="fdr")
+sum(p.adjust(ps_ramp, n=length(elecs), method="fdr") < 0.05)
+betas_ramp[p.adjust(ps_ramp, n=length(elecs), method="fdr") < 0.05]
+print(paste("Electrode with statistically significant ramping contrast: ", unlist(elecs[p.adjust(ps_ramp, n=length(elecs), method="fdr") < 0.05]), sep=""))
+# save file
+ramp_stats = data.frame(elecs = elecs, p = p.adjust(ps_ramp, n=length(elecs), method="fdr"), betas = unlist(betas_ramp), 
+                        region = regions[unlist(lapply(regions, function(x) x != "No_label"))])
+write.csv(ramp_stats, paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/ramp_stats.csv', sep=""))
 

@@ -35,7 +35,7 @@ exp_st = events(1);
 exp_en = events(end);
 
 %freqs variables
-theta = [4,10];
+theta = [4,12];
 
 
 %% IRASA
