@@ -1,10 +1,14 @@
-%% Instantaneous amplitude
+%% Phase locking
+
+% see if electrodes are showing phase locking to stim onset across all
+% trials
 clear
 
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
+addpath(genpath('/Users/stiso/Documents/MATLAB/CircStat2012a/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
-subj = '4';
+subj = '2';
 save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
 img_dir = ['/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_img/subj', subj];
@@ -37,22 +41,10 @@ peaks = peaks((logical(ps)));
 AAL = AAL(logical(ps),:);
 nElec = size(elec_labels,1);
 
-%% Get power via hilbert transform...
-% filter from Wilson paper: ?band-pass filtered in the ? band (4?10 Hz) 
-% using digital filters constructed via the Parks-McClellan 
-% (Chebychev, similar to windowed sinc, or firws in fieldtrip) optimal equiripple FIR filter design. 
-% Transition bands were 4 Hz?4.5 Hz and 10 Hz?10.5 Hz. 
-% Maximal ripple was 0.05 in the stop bands and 0.01 in the pass band.
+%% Get fourier spectrum via wavelet
 
-% Since this method is exact, you need to use a narrow band filter to
-% remove as much noise as possible
-
-% However, using a narrow band filter can distort your signal... it is
-% important to plot your filter waveform
-
-% This method does not take into account the different peak
-% frequencies...but also maybe makes more sense for electrodes that have
-% multiple peaks
+% wavelet centered on every time point, from the shortest RT
+min_rt = min(good_events(:,2) - good_events(:,1));
 
 cfg = [];
 cfg.bpfilter = 'yes';
@@ -65,10 +57,48 @@ cfg.bsfiltdev = 0.05; % bandstp max passband deviation
 cfg.bpfilttype = 'firws'; % or 'firls' (slower), but avoid the default 'but' (= not well-suited for hilbert phase estimate)
 cfg.hilbert = 'complex';
 
-inst = ft_preprocessing(cfg, ft_data);
+wave = ft_preprocessing(cfg, ft_data);
 
 
-%% plot response (only have to do this once)
+%% Get inst phase
+
+phi = zeros(nElec, min_rt, nGoodTrial);
+for t = 1:nGoodTrial
+    phi(:,:,t) = atan(imag(wave.trial{t}(:,1:min_rt))./real(wave.trial{t}(:,1:min_rt)));
+end
+
+
+%% test uniformity for duration of trial
+% at some point...we want to say they are less uniform than thier RTs
+% get index of rayleight stat for every point in time, for every elec
+
+ray_stat = zeros(nElec,min_rt);
+ray_pval = zeros(nElec,min_rt);
+
+for i = 1:nElec
+    
+    curr = squeeze(phi(:,i,:));
+    for t = 1:min_rt
+       [ray_stat(i,t), ray_pval(i,t)] = rayleigh_stat(curr(:,t));
+    end
+    
+    figure(1); clf
+    subplot(1,2,1)
+    plot(ray_stat(i,:), 'linewidth', 2); hold on
+    title('rayleigh stat')
+    subplot(1,2,2)
+    plot(ray_pval(i,:), 'linewidth', 2); hold on
+    title('p-val')
+    pause(0.1)
+end
+
+
+%% Plot raster-like heatmap for each electrode
+
+
+
+%% Get plot of uniformity for each transition
+
 plot_data = ft_data;
 % get step and impulse
 step = [ones(1,2000), ones(1,2000)*2];
@@ -109,65 +139,3 @@ title('Step')
 xlabel('Time')
 ylabel('Amplitude')
 saveas(gca, [img_dir, '/filter_resp.png'], 'png')
-
-%% Get instantaneous amp from hilbert transformed data
-
-ia_mat = zeros(nElec, nGoodTrial);
-for i = 1:nGoodTrial
-    %add to data structure
-    % is the mean what I want here?
-    ia_mat(:,i) = mean(abs(inst.trial{i}),2);
-    
-    figure(1); clf
-    plot(abs(inst.trial{i})', 'linewidth', 2);
-    ylabel('amp')
-    xlabel('time')
-    %pause(0.01);  
-end
-
-for i = 1:nElec
-    figure(2); clf
-    scatter(ia_mat(i,:),good_events(:,2) - good_events(:,1));
-    ylabel('log(power)')
-    xlabel('RT')
-    %pause(0.01);
-end
-
-% get instantaneous amp for r anaylsis
-region = AAL(:,1);
-good_trial_idx = trial(good_trials);
-save([r_dir, 'subj', subj, '/inst_amp.mat'], 'ia_mat', 'elec_labels', 'region', 'good_trial_idx', 'module_idx')
-
-%% Plots
-
-nNode = numel(unique(walk));
-ia_node = zeros(nNode, nNode, nElec);
-
-for i = 1:nElec
-    
-    count_node = zeros(nNode);
-    
-    cnt = 0; % not zero because j counter starts at 2
-    for j = 2:numel(walk)
-        prev = walk(j-1) + 1;
-        curr = walk(j) + 1;
-        if good_trials(j)
-            cnt = cnt + 1;
-            ia_node(prev,curr,i) = ia_node(prev,curr,i) + ia_mat(i,cnt);
-            count_node(prev,curr) = count_node(prev,curr) + 1;
-            
-           
-        end
-    end
-    ia_node(:,:,i) = ia_node(:,:,i)./count_node;
-    
-    %plot
-    figure(3); clf
-    imagesc(ia_node(:,:,i)); c = colorbar;
-    title(AAL{i})
-    xlabel('current node')
-    ylabel('previous node')
-    c.Label.String = 'power';
-    saveas(gca, [img_dir, '/ia_by_trans_', elec_labels{i}, '.png'], 'png')
-    
-end

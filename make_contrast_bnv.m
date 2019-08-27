@@ -1,5 +1,5 @@
 %% Plot electrodes for each contrast
-
+clear
 
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
@@ -9,7 +9,7 @@ subjs = [{'2'},{'4'}];
 save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
 
-ext = '_ia';
+ext = '';
 
 % initialize
 x_ramp = [];

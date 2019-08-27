@@ -14,14 +14,14 @@ library(plyr)
 library(lm.beta)
 setwd("/Users/stiso/Documents/Python/graphLearning/ECoG data/")
 
-s = 4
+s = 2
 load('behavior_preprocessed/clean.RData')
 ia = readMat(paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/inst_amp.mat',sep=""))
 
 # format 
 df_subj = dplyr::filter(df_correct, subj == s)
-elecs = unlist(data$elec.labels)
-regions = unlist(data$region)
+elecs = unlist(ia$elec.labels)
+regions = unlist(ia$region)
 
 # get only elecs in grey matter
 elecs = elecs[unlist(lapply(regions, function(x) x != "No_label"))]
@@ -29,8 +29,8 @@ elecs = elecs[unlist(lapply(regions, function(x) x != "No_label"))]
 df_ia <- data.frame(matrix(ncol = length(elecs) + 2, nrow = length(t(ia$good.trial.idx))))
 nam <- c("order", "mod", elecs)
 colnames(df_ia) <- nam
-df_ia$order = t(data$good.trial.idx)
-df_ia$mod = data$module.idx
+df_ia$order = t(ia$good.trial.idx)
+df_ia$mod = ia$module.idx
 
 for (e in 1:length(elecs)){
   elec <- elecs[e]
@@ -49,7 +49,7 @@ models_ia = list()
 ps_ia = list()
 betas_ia = list()
 for (e in elecs){
-  formula = paste(e, '~ transition*order + finger + hand + hand_transition')
+  formula = paste(e, '~ transition + order + finger + hand + hand_transition')
   fit = lm(data=df_ia_fit, formula)
   anova(fit)
   ps_ia[[e]] = (anova(fit)$`Pr(>F)`[1])
@@ -70,7 +70,7 @@ models_ramp_ia = list()
 ps_ramp_ia = list()
 betas_ramp_ia = list()
 for (e in elecs){
-  formula = paste(e, '~ mod*order + finger + hand + hand_transition')
+  formula = paste(e, '~ mod + order + finger + hand + hand_transition')
   fit = lm(data=df_ia_fit, formula)
   anova(fit)
   ps_ramp_ia[[e]] = (anova(fit)$`Pr(>F)`[1])

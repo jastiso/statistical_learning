@@ -1,4 +1,5 @@
 %% Instantaneous amplitude
+clear
 
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
@@ -14,23 +15,27 @@ if ~exist(img_dir, 'dir')
 end
 
 % load stuff
-load([save_dir, subj, '/data_clean.mat'])
-load([save_dir, subj, '/header_clean.mat'], 'srate', 'HUP_ID', 'subj', 'AAL')
+load([save_dir, subj, '/ft_data.mat'])
+load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj', 'AAL')
 load([save_dir, subj, '/events.mat']) % in samples
 load([save_dir, subj, '/task_data.mat'])
-% run cc_power first to get these
-load([r_dir, 'subj', subj, '/peak_power.mat'], 'elec_labels', 'region', 'good_trial_idx', 'module_idx')
+load([save_dir, subj, '/good_events.mat'])
+load([r_dir, 'subj', subj, '/theta_peaks.mat'])
 
 % analysis varaibles
 nTrial = size(events,1);
-nElec = size(data,1);
-nGoodTrial = numel(good_trial_idx);
+nGoodTrial = size(good_events,1);
 
-% timing varaibles
-exp_st = events(1);
-exp_en = events(end);
-
+% freq variables
 theta = [4, 12];
+
+%% Channel Selection
+
+% only elecs with signigifant peak
+elec_labels = elec_labels(logical(ps),:);
+peaks = peaks((logical(ps)));
+AAL = AAL(logical(ps),:);
+nElec = size(elec_labels,1);
 
 %% Get power via hilbert transform...
 % filter from Wilson paper: ?band-pass filtered in the ? band (4?10 Hz) 
@@ -51,6 +56,7 @@ theta = [4, 12];
 
 cfg = [];
 cfg.bpfilter = 'yes';
+cfg.channel = elec_labels;
 cfg.bpfreq = theta;
 cfg.bpfiltdf = 0.5; % bandpass transition width
 cfg.bsfiltdf = 0.5; % bandstop transition width
@@ -76,6 +82,7 @@ plot_data.time = {0.001:0.001:4};
 % change some things for plotting
 cfg.plotfiltresp = 'yes';
 cfg.hilbert = 'no';
+cfg.channel = plot_data.label;
 filter_resp = ft_preprocessing(cfg, plot_data);
 saveas(gca, [img_dir, '/ft_filter_resp.png'], 'png')
 
@@ -109,10 +116,10 @@ ia_mat = zeros(nElec, nGoodTrial);
 for i = 1:nGoodTrial
     %add to data structure
     % is the mean what I want here?
-    ia_mat(:,i) = mean(abs(inst_amp.trial{i}),2);
+    ia_mat(:,i) = mean(abs(inst.trial{i}),2);
     
     figure(1); clf
-    plot(abs(inst_amp.trial{i})', 'linewidth', 2);
+    plot(abs(inst.trial{i})', 'linewidth', 2);
     ylabel('amp')
     xlabel('time')
     %pause(0.01);  
@@ -126,5 +133,42 @@ for i = 1:nElec
     %pause(0.01);
 end
 
-% get instantaneous amp for python anaylsis
+% get instantaneous amp for r anaylsis
+region = AAL(:,1);
+good_trial_idx = trial(good_trials);
 save([r_dir, 'subj', subj, '/inst_amp.mat'], 'ia_mat', 'elec_labels', 'region', 'good_trial_idx', 'module_idx')
+
+
+nNode = numel(unique(walk));
+ia_node = zeros(nNode, nNode, nElec);
+
+for i = 1:nElec
+    
+    count_node = zeros(nNode);
+    
+    cnt = 0; % not zero because j counter starts at 2
+    for j = 2:numel(walk)
+        prev = walk(j-1) + 1;
+        curr = walk(j) + 1;
+        if good_trials(j)
+            cnt = cnt + 1;
+            ia_node(prev,curr,i) = ia_node(prev,curr,i) + peak_power(i,cnt);
+            count_node(prev,curr) = count_node(prev,curr) + 1;
+            
+            if i == nElec % only need to do this once
+                RT(prev,curr) = RT(prev,curr) + events(cnt,2) - events(cnt,1);
+            end
+        end
+    end
+    ia_node(:,:,i) = ia_node(:,:,i)./count_node;
+    
+    %plot
+    figure(3); clf
+    imagesc(ia_node(:,:,i)); c = colorbar;
+    title(AAL{i})
+    xlabel('current node')
+    ylabel('previous node')
+    c.Label.String = 'power';
+    saveas(gca, [img_dir, '/ia_by_trans_', elec_labels{i}, '.png'], 'png')
+    
+end
