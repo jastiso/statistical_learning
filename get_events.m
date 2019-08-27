@@ -1,4 +1,5 @@
 %% Get trial indices, and ictal periods
+clear 
 
 addpath(genpath('/Users/stiso/Documents/MATLAB/ieeg-matlab-1.13.2/'))
 addpath(genpath('/Users/stiso/Documents/MATLAB/eeglab_current/'))
@@ -19,10 +20,13 @@ load([save_dir, subj, '/header.mat'], 'srate', 'HUP_ID', 'subj')
 %
 % you might have to play around with the threshold to get something that
 % works
-
-minITI = 40;
-minDuration = 50;
-event_thresh = 5300000;
+try 
+    load([save_dir, subj, '/event_params.mat'])
+catch
+    minITI = 40;
+    minDuration = 50;
+    event_thresh = 5300000;
+end
 
 events = find_events(pd(1,:), srate, minITI, minDuration, event_thresh, "show") ;
 events = [events.onsets events.offsets];

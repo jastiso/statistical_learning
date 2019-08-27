@@ -16,7 +16,7 @@ setwd("/Users/stiso/Documents/Python/graphLearning/ECoG data/")
 s = 2
 load('behavior_preprocessed/clean.RData')
 data = readMat(paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/peak_power.mat',sep=""))
-
+  
 # format 
 df_subj = dplyr::filter(df_correct, subj == s)
 elecs = unlist(data$elec.labels)
@@ -30,15 +30,17 @@ nam <- c("order", "mod", elecs)
 colnames(df_pow) <- nam
 df_pow$order = t(data$good.trial.idx)
 df_pow$mod = data$module.idx
+
 for (e in 1:length(elecs)){
   elec <- elecs[e]
   curr = data$peak.power[e,]
   df_pow[elec] = curr
+
 }
 # combine
-df = merge(df_subj,df_pow, by.x = 'order')
+df_pow = merge(df_subj,df_pow, by.x = 'order')
 drops = c('X','Unnamed..0','graph','walk','typing_raw','subj','correct_raw','resp','sess')
-df_fit = df[,!(names(df) %in% drops)]
+df_fit = df_pow[,!(names(df_pow) %in% drops)]
 
 
 ##### Stats #################################
@@ -47,7 +49,7 @@ models = list()
 ps = list()
 betas = list()
 for (e in elecs){
-  formula = paste(e, '~ transition*order + finger + hand + hand_transition')
+  formula = paste(e, '~ transition + order + finger + hand + hand_transition')
   fit = lm(data=df_fit, formula)
   anova(fit)
   ps[[e]] = (anova(fit)$`Pr(>F)`[1])
@@ -68,7 +70,7 @@ models_ramp = list()
 ps_ramp = list()
 betas_ramp = list()
 for (e in elecs){
-  formula = paste(e, '~ mod*order + finger + hand + hand_transition')
+  formula = paste(e, '~ mod + order + finger + hand + hand_transition')
   fit = lm(data=df_fit, formula)
   anova(fit)
   ps_ramp[[e]] = (anova(fit)$`Pr(>F)`[1])
@@ -83,4 +85,5 @@ print(paste("Electrode with statistically significant ramping contrast: ", unlis
 ramp_stats = data.frame(elecs = elecs, p = p.adjust(ps_ramp, n=length(elecs), method="fdr"), betas = unlist(betas_ramp), 
                         region = regions[unlist(lapply(regions, function(x) x != "No_label"))])
 write.csv(ramp_stats, paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/ramp_stats.csv', sep=""))
+
 

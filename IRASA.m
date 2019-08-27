@@ -1,4 +1,5 @@
 %% IRASA pipeline
+clear
 
 % Identify electrodes with theta range electrodes
 % repeat for different windows, with and without lowpass filtering
