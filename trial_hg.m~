@@ -1,4 +1,5 @@
 %% Calculate theta power for every trial
+clear
 
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
@@ -19,60 +20,39 @@ load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 's
 load([save_dir, subj, '/events.mat']) % in samples
 load([save_dir, subj, '/task_data.mat'])
 load([save_dir, subj, '/good_events.mat'])
-load([r_dir, 'subj', subj, '/theta_peaks.mat'])
 
 % analysis varaibles
 nTrial = size(events,1);
-nElec = size(ft_data.label,1);
-
-% timing varaibles
-exp_st = events(1);
-exp_en = events(end);
-cc_events = good_events(trans_idx,:);
+nGoodTrial = size(good_events,1);
 
 % freq variables
-theta = [4, 12];
-
-
-%% Channel Selection
-
-% only elecs with signigifant peak
-data = data(logical(ps),:);
-elec_labels = elec_labels(logical(ps),:);
-peaks = peaks((logical(ps)));
-AAL = AAL(logical(ps),:);
-nElec = size(data,1);
-
-nGoodTrial = size(good_events,1);
+hg = [70, 250];
 
 
 %% Get power at peak index
 
 cfg = [];
-cfg.method = 'mtmfft'; % only single taper for low freqs
+cfg.method = 'mtmfft'; 
 cfg.channel = elec_labels;
-cfg.taper = 'hanning';
+cfg.taper = 'dpss';
 cfg.ouput = 'pow';
 cfg.pad = 'nextpow2';
-cfg.foi = unique(round(peaks));
+cfg.foi = hg; % this includes two notch filtered freqs within the band!!
 cfg.keeptrials = 'yes';
-%cfg.tapsmofrq = 4; %smoothing index - check if same effect is present for others
+cfg.tapsmofrq = 4; %smoothing index - check if same effect is present for others
 
 pow = ft_freqanalysis(cfg,ft_data);
 
 
-%% Get power at peaks only
+%% Log transform and average
 
 
-corr_ps = zeros(nElec,1);
+corr_rs = zeros(nElec,1);
 peak_power = zeros(nElec, nGoodTrial);
 for i = 1:nElec
-    curr_peak = round(peaks(i));
-    peak_idx = find(curr_peak == pow.freq');
 
-    
     [r,pcorr] = corr(log10(pow.powspctrm(:,i,peak_idx)),good_events(:,2) - good_events(:,1));
-    corr_ps(i) = pcorr;
+    corr_rs(i) = r;
     figure(2); clf
     scatter(log10(pow.powspctrm(:,i,peak_idx)),good_events(:,2) - good_events(:,1));
     ylabel('log(power)')

@@ -15,7 +15,7 @@ eval(['AAL = AAL_all.RID', RID, ';']);
 
 load([save_dir, subj, '/raw_data.mat'], 'data')
 load([save_dir, subj, '/header.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
-
+AAL = AAL(~rmv, :);
 
 %% Remove noisy elecs
 

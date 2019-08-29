@@ -9,7 +9,7 @@ subjs = [{'2'},{'4'}];
 save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
 
-ext = '';
+ext = '_hg';
 
 % initialize
 x_ramp = [];
