@@ -69,16 +69,8 @@ inst = ft_preprocessing(cfg, ft_data);
 
 
 %% plot response (only have to do this once)
-plot_data = ft_data;
-% get step and impulse
-step = [ones(1,2000), ones(1,2000)*2];
-impulse = ones(1,4000);
-impulse(2000) = 2;
-% get new data strucutre
-plot_data.trial = {[impulse; step]};
-plot_data.label = [{'impulse'}, {'step'}];
-plot_data.sampleinfo = [1*srate, 3000*srate];
-plot_data.time = {0.001:0.001:4};
+
+plot_data = filter_resp(ft_data, 4000, srate);
 % change some things for plotting
 cfg.plotfiltresp = 'yes';
 cfg.hilbert = 'no';

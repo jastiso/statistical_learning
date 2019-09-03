@@ -13,7 +13,7 @@ library(plyr)
 library(lm.beta)
 setwd("/Users/stiso/Documents/Python/graphLearning/ECoG data/")
 
-s = 4
+s = 2
 load('behavior_preprocessed/clean.RData')
 data = readMat(paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/hg_power.mat',sep=""))
 
