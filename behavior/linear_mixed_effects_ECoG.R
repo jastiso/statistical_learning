@@ -67,18 +67,27 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 # LMER
 
 
-stat_learn = lmer(data=df_correct, rt_raw~scale(order) * graph + resp + hand_transition + block + scale(lag10) + scale(recency) + (1 + scale(order)|subj))
+stat_learn = lmer(data=df_correct, rt_raw~scale(order) * graph + finger + hand_transition + block + scale(lag10) + scale(recency) + sess + (1 + scale(order)|subj))
 anova(stat_learn)
 
-stat_graph = lmer(data=df_correct, rt_raw~scale(order)*graph + resp + hand_transition +  block + scale(lag10) + scale(recency) + (1 + scale(order)*graph|subj))
+stat_graph = lmer(data=df_correct, rt_raw~scale(order)*graph + finger + hand_transition +  block + scale(lag10) + scale(recency) + sess + (1 + scale(order)*graph|subj))
 anova(stat_graph)
 
-stat_surprisal = lmer(data=df_modular, rt_raw~scale(order)*transition + finger + hand + hand_transition +  block + scale(lag10) + scale(recency) + (1 + scale(order)*transition + scale(lag10) + scale(recency) |subj))
+stat_surprisal = lmer(data=df_modular, rt_raw~scale(order)*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) + scale(recency) |subj))
 anova(stat_surprisal)
+summary(stat_surprisal)
 
 # no pooling
-stat_no_pool = lm(data=df_modular, rt_raw~scale(order)*transition + resp + hand_transition +  block + scale(lag10) + scale(recency) + subj)
+stat_no_pool = lm.beta(lm(data=df_modular, rt_raw~scale(order)*transition + finger + hand_transition +  block + scale(lag10) + scale(recency) +sess +  subj))
 anova(stat_no_pool)
+summary(stat_no_pool)
+
+# full pooling
+stat_pool = lm.beta(lm(data=filter(df_modular, subj == '6'), rt_raw~scale(order)*transition + finger + hand_transition +  block + scale(lag10) + sess + scale(recency)))
+anova(stat_pool)
+summary(stat_pool)
+
+
 
 ##################
 # Plot
@@ -120,14 +129,4 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   ggsave(paste( 'behavior_preprocessed/images/rt_mTurk_bin_cc.pdf', sep = ''))
 
 
-
-####################
-# Individual subj model
-
-
-stat_surprisal = lm(data=filter(df_modular, subj == 2), rt_raw~scale(order)*transition + finger + hand + hand_transition +  block + scale(lag10) + scale(recency))
-anova(stat_surprisal)
-
-stat_surprisal = lm(data=filter(df_modular, subj == 4), rt_raw~scale(order)*transition + finger + hand + hand_transition +  block + scale(lag10) + scale(recency))
-anova(stat_surprisal)
 

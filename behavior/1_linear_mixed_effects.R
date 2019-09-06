@@ -9,7 +9,6 @@ library(RColorBrewer)
 library(wesanderson)
 library(ez)
 library(plyr)
-library(afex)
 setwd("/Users/stiso/Documents/Python/graphLearning/old_tasks/mTurk-10-node-breaks")
 ext = '1'
 
@@ -147,6 +146,7 @@ anova(stat_graph)
 stat_surprisal = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
                         scale(recency) + (1 + scale(log10(cum_trial))*is_crosscluster + scale(lag10) + scale(recency)|workerid))
 anova(stat_surprisal)
+summary(stat_surprisal)
 
 contrasts(df_modular_acc$hand_transition) <- contr.helmert(2)/2
 contrasts(df_modular_acc$hand) <- contr.helmert(2)/2

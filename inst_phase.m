@@ -8,7 +8,7 @@ addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(genpath('/Users/stiso/Documents/MATLAB/CircStat2012a/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
-subj = '2';
+subj = '4';
 save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
 img_dir = ['/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_img/subj', subj];
