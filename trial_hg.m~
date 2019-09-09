@@ -24,9 +24,10 @@ load([save_dir, subj, '/good_events.mat'])
 % analysis varaibles
 nTrial = size(events,1);
 nGoodTrial = size(good_events,1);
+nElec = numel(elec_labels);
 
 % freq variables
-hg = [70, 250];
+hg = [70:250];
 
 
 %% Get power at peak index
@@ -48,19 +49,20 @@ pow = ft_freqanalysis(cfg,ft_data);
 
 
 corr_rs = zeros(nElec,1);
-peak_power = zeros(nElec, nGoodTrial);
+hg_power = zeros(nElec, nGoodTrial);
 for i = 1:nElec
-
-    [r,pcorr] = corr(log10(pow.powspctrm(:,i,peak_idx)),good_events(:,2) - good_events(:,1));
+    curr = squeeze(mean(log10(pow.powspctrm(:,i,:)),3));
+    
+    [r,pcorr] = corr(curr,good_events(:,2) - good_events(:,1));
     corr_rs(i) = r;
     figure(2); clf
-    scatter(log10(pow.powspctrm(:,i,peak_idx)),good_events(:,2) - good_events(:,1));
+    scatter(curr,good_events(:,2) - good_events(:,1));
     ylabel('log(power)')
     xlabel('RT')
     pause(0.01);
     
     %add to peak data
-    peak_power(i,:) = log10(pow.powspctrm(:,i,peak_idx));
+    hg_power(i,:) = curr;
 end
 
 
@@ -69,14 +71,13 @@ region = AAL(:,1);
 good_trial_idx = trial(good_trials);
 
 % get data for python anaylsis
-save([r_dir, 'subj', subj, '/peak_power.mat'], 'peak_power', 'elec_labels', 'region', 'good_trial_idx', 'module_idx')
+save([r_dir, 'subj', subj, '/hg_power.mat'], 'hg_power', 'elec_labels', 'region', 'good_trial_idx', 'module_idx')
 
 
 
 %% Plots
 
 nNode = numel(unique(walk));
-RT = zeros(nNode);
 power_node = zeros(nNode, nNode, nElec);
 
 for i = 1:nElec
@@ -89,12 +90,8 @@ for i = 1:nElec
         curr = walk(j) + 1;
         if good_trials(j)
             cnt = cnt + 1;
-            power_node(prev,curr,i) = power_node(prev,curr,i) + peak_power(i,cnt);
+            power_node(prev,curr,i) = power_node(prev,curr,i) + hg_power(i,cnt);
             count_node(prev,curr) = count_node(prev,curr) + 1;
-            
-            if i == nElec % only need to do this once
-                RT(prev,curr) = RT(prev,curr) + events(cnt,2) - events(cnt,1);
-            end
         end
     end
     power_node(:,:,i) = power_node(:,:,i)./count_node;
@@ -106,16 +103,8 @@ for i = 1:nElec
     xlabel('current node')
     ylabel('previous node')
     c.Label.String = 'power';
-    saveas(gca, [img_dir, '/pow_by_trans_', elec_labels{i}, '.png'], 'png')
+    saveas(gca, [img_dir, '/hg_by_trans_', elec_labels{i}, '.png'], 'png')
     
 end
-
-RT = RT./count_node;
-figure(4); clf
-imagesc(RT); c = colorbar;
-xlabel('current node')
-ylabel('previous node')
-c.Label.String = 'RT';
-saveas(gca, [img_dir, '/rt_by_trans.png'], 'png')
 
 

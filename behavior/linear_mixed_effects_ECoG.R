@@ -73,7 +73,7 @@ anova(stat_learn)
 stat_graph = lmer(data=df_correct, rt_raw~scale(order)*graph + finger + hand_transition +  block + scale(lag10) + scale(recency) + sess + (1 + scale(order)*graph|subj))
 anova(stat_graph)
 
-stat_surprisal = lmer(data=df_modular, rt_raw~scale(order)*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) + scale(recency) |subj))
+stat_surprisal = lmer(data=df_modular, rt_raw~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) + scale(recency) |subj))
 anova(stat_surprisal)
 summary(stat_surprisal)
 
@@ -103,10 +103,10 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
 ggsave(paste( 'behavior_preprocessed/images/rt_mTurk.png', sep = ''))
 
 
-avg_cluster = df_modular %>%
+avg_cluster = filter(df_modular, sess == '1') %>%
   group_by(order, transition) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
-avg_cluster$transition = factor(avg_cluster$transition,levels(avg_cluster$transition)[c(2,1)])
+avg_cluster$transition = factor(avg_cluster$transition,levels(avg_cluster$transition)[c(2,3)])
 
 plot = ggplot(data=avg_cluster, aes(x=order, y=mean_rt, color=transition))
 plot + geom_line(size=1) + ggtitle('RT over time, by Transition') +
@@ -114,7 +114,7 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Transition') +
 ggsave(paste( 'behavior_preprocessed/images/rt_mTurk_cc.png', sep = ''))
 
 
-nbin = 30
+nbin = 40
 bin_data_cluster = data_frame(trial = c(tapply(avg_cluster$order, cut(avg_cluster$order, nbin), mean), 
                                         tapply(avg_cluster$order, cut(avg_cluster$order, nbin), mean)),
                               mean_rt = c(tapply(filter(avg_cluster, transition == "False")$mean_rt, cut(filter(avg_cluster, transition == "False")$order, nbin), mean), 
