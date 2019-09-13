@@ -28,6 +28,18 @@ for (var in cat_vars){
     as.factor(unlist(df_clean[var]))
   
 }
+
+p<-ggplot(df_clean, aes(x=rt_raw)) + 
+  geom_histogram(fill='pink', color='white')
+p
+ggsave(paste( 'data/preprocessed/images/rt_ecog.png', sep = ''))
+# make rts inverse
+df_clean$rt_raw = 1/df_clean$rt_raw
+p<-ggplot(df_clean, aes(x=rt_raw)) + 
+  geom_histogram(fill='lightblue', color='white')
+p
+ggsave(paste( 'data/preprocessed/images/rt_inv_ecog.png', sep = ''))
+
 summary(df_clean)
 
 # remove incorrect trials
@@ -66,16 +78,34 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 #################
 # LMER
 
-
+## learn
 stat_learn = lmer(data=df_correct, rt_raw~scale(order) * graph + finger + hand_transition + block + scale(lag10) + scale(recency) + sess + (1 + scale(order)|subj))
 anova(stat_learn)
 
+
+## graph
 stat_graph = lmer(data=df_correct, rt_raw~scale(order)*graph + finger + hand_transition +  block + scale(lag10) + scale(recency) + sess + (1 + scale(order)*graph|subj))
 anova(stat_graph)
 
-stat_surprisal = lmer(data=df_modular, rt_raw~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) + scale(recency) |subj))
-anova(stat_surprisal)
-summary(stat_surprisal)
+
+### surprisal
+stat_surprisal1 = lmer(data=df_modular, rt_raw~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition |subj))
+anova(stat_surprisal1)
+summary(stat_surprisal1)
+
+stat_surprisal2 = lmer(data=df_modular, rt_raw~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) |subj))
+anova(stat_surprisal2)
+summary(stat_surprisal2)
+
+# chi sq
+anova(stat_surprisal2, stat_surprisal1, test="Chisq")
+
+stat_surprisal3 = lmer(data=df_modular, rt_raw~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) + scale(recency) |subj))
+anova(stat_surprisal3)
+summary(stat_surprisal3)
+
+# chi sq
+anova(stat_surprisal3, stat_surprisal2, test="Chisq")
 
 # no pooling
 stat_no_pool = lm.beta(lm(data=df_modular, rt_raw~scale(order)*transition + finger + hand_transition +  block + scale(lag10) + scale(recency) +sess +  subj))

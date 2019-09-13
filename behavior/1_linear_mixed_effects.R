@@ -30,7 +30,6 @@ subj_rm = df$workerid == acc$workerid[acc$total_acc < 80]
 df = df[!subj_rm,]
 
 
-
 ######
 # Clean up - remove columns you dont need, only get correct trials, etc
 
@@ -109,6 +108,18 @@ for (t in 1:length(finger)){
 }
 df_clean$finger = as.factor(finger)
 
+
+p<-ggplot(df_clean, aes(x=rt)) + 
+  geom_histogram(fill='pink', color='white')
+p
+ggsave(paste( 'data/preprocessed/images/rt', ext,'.png', sep = ''))
+# make rts inverse
+df_clean$rt = 1/df_clean$rt
+p<-ggplot(df_clean, aes(x=rt)) + 
+  geom_histogram(fill='lightblue', color='white')
+p
+ggsave(paste( 'data/preprocessed/images/rt_inv', ext,'.png', sep = ''))
+
 summary(df_clean)
 
 # remove incorrect trials
@@ -128,26 +139,57 @@ df_right = filter(df_modular, hand == 'right')
 summary(df_correct)
 
 
+
 #################
 # LMER
 
+### Learning
 # add *is lattice to trial if you have multiple graphs
 stat_learn = lmer(data=df_correct, rt~scale(log(cum_trial)) + scale(log10(trial)) + finger + hand + hand_transition + stage_num + scale(lag10) + 
                                         scale(recency) + (1 + scale(cum_trial) + scale(lag10) + scale(recency)|workerid))
 anova(stat_learn)
 
 
+
+
+
+### Graph
 contrasts(df_correct$is_lattice) <- contr.helmert(2)/2
 stat_graph = lmer(data=df_correct, rt~scale(cum_trial)*is_lattice + scale(log10(trial)) + finger + hand + hand_transition + stage_num + scale(lag10) + 
                     scale(recency) + (1 + scale(cum_trial)*is_lattice|workerid))
 anova(stat_graph)
 
-# change to df modular if multiple graphs
-stat_surprisal = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
-                        scale(recency) + (1 + scale(log10(cum_trial))*is_crosscluster + scale(lag10) + scale(recency)|workerid))
-anova(stat_surprisal)
-summary(stat_surprisal)
 
+### Modular
+# change to df modular if multiple graphs
+# most basic
+stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
+                        scale(recency) + (1 + scale(log10(cum_trial))*is_crosscluster|workerid))
+anova(stat_surprisal1)
+summary(stat_surprisal1)
+
+# adding lag 10 - is it useful to include this with a random slope?
+stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
+                         scale(recency) + (1 + scale(log10(cum_trial))*is_crosscluster + scale(lag10)|workerid))
+anova(stat_surprisal2)
+summary(stat_surprisal2)
+
+# chi sq
+anova(stat_surprisal1, stat_surprisal2, test="Chisq")
+
+# adding recency - is it useful to include this with a random slope?
+stat_surprisal3 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
+                         scale(recency) + (1 + scale(log10(cum_trial))*is_crosscluster + scale(lag10) + scale(recency)|workerid))
+anova(stat_surprisal3)
+summary(stat_surprisal3)
+
+# chi sq
+anova(stat_surprisal3, stat_surprisal2, test="Chisq")
+
+
+
+
+### Accuracy
 contrasts(df_modular_acc$hand_transition) <- contr.helmert(2)/2
 contrasts(df_modular_acc$hand) <- contr.helmert(2)/2
 contrasts(df_modular_acc$correct) <- contr.helmert(2)/2
@@ -157,6 +199,9 @@ stat_acc = glmer(data=df_modular_acc, correct~scale(cum_trial)*is_crosscluster +
                  family = binomial(link = "logit"))
 anova(stat_acc)
 
+
+
+## Communicability
 contrasts(df_correct$hand_transition) <- contr.helmert(2)/2
 contrasts(df_correct$hand) <- contr.helmert(2)/2
 df_correct$communicability = as.factor(df_correct$communicability)

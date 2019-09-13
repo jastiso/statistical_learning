@@ -9,7 +9,7 @@ clear
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
-subj = '2';
+subj = '4';
 save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
 img_dir = ['/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_img/subj', subj];
@@ -181,6 +181,13 @@ for i = 1:sum(sig_contrast)
     plot([mod_idx(elec_idx), mod_idx(elec_idx)], [0, 1], 'red', 'linewidth', 3)
     title(['MI vs Surrogate ', AAL{elec_idx,1}])
     saveas(gca, [img_dir, '/PAC_surr_', elec_labels{elec_idx}, '.png'], 'png')
+    
+end
+
+for i = 1:sum(sig_contrast)
+    elec_idx = find(strcmpi(elec_labels, sig_elecs{i}));
+    % z-score
+    z = (mod_idx(elec_idx) - mean(mi_surr(:,i)))/std(mi_surr(:,i))
 end
 
 
