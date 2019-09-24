@@ -1,0 +1,44 @@
+%% Fit maximum entropy model
+
+clear
+
+addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
+addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
+% define variables
+save_dir = '/Users/stiso/Documents/Python/graphLearning/old_tasks/mTurk-10-node-breaks/data/preprocessed/';
+ephys_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
+
+% load stuff
+data = readtable([save_dir, 'residuals.csv']);
+data = data(data.is_lattice == 0,:);
+walks = readtable('/Users/stiso/Documents/Python/graphLearning/old_tasks/mTurk-10-node-breaks/experiment/stims/nodes_random.csv');
+
+%% Get model
+
+subjs = unique(data.workerid);
+nSubj = numel(subjs);
+beta = zeros(nSubj,1);
+r0 = zeros(nSubj,1);
+r1 = zeros(nSubj,1);
+E = zeros(nSubj,1);
+diff = zeros(nSubj,1);
+
+for s = 1:nSubj
+    % select subject
+    curr = data(strcmpi(data.workerid,subjs{s}),:);
+    % get rt (residuals) and trial
+    rt = curr.resid;
+    trials = curr.trial;
+    % get walk from csv
+    idx = curr.walk_id(1);
+    walk = walks(idx,:).Variables;
+    
+    [beta(s), r0(s), r1(s), E(s), diff(s)] = learn_linear_real_full(walk, rt, trials);
+end
+
+%% Plot
+
+figure(1); clf
+histogram(log10(beta), 20, 'facecolor', rgb('steelblue'), 'facealpha', 0.6, 'border')
+xlabel('log( beta )')
+ylabel('Count')

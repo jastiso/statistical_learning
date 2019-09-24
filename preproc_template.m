@@ -55,6 +55,7 @@ data = data - mean(data,2); % demean
 data = detrend(data')'; % as opposed to low pass filtering
 data = get_CAR(data); % CAR by group
 
+
 %% Get ictal spikes
 
 

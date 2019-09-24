@@ -34,8 +34,8 @@ p<-ggplot(df_clean, aes(x=rt_raw)) +
 p
 ggsave(paste( 'data/preprocessed/images/rt_ecog.png', sep = ''))
 # make rts inverse
-df_clean$rt_raw = 1/df_clean$rt_raw
-p<-ggplot(df_clean, aes(x=rt_raw)) + 
+df_clean$rt = 1/df_clean$rt_raw
+p<-ggplot(df_clean, aes(x=rt)) + 
   geom_histogram(fill='lightblue', color='white')
 p
 ggsave(paste( 'data/preprocessed/images/rt_inv_ecog.png', sep = ''))
@@ -79,28 +79,39 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 # LMER
 
 ## learn
-stat_learn = lmer(data=df_correct, rt_raw~scale(order) * graph + finger + hand_transition + block + scale(lag10) + scale(recency) + sess + (1 + scale(order)|subj))
+stat_learn = lmer(data=df_correct, rt~scale(order) * graph + finger + hand_transition + block + scale(lag10) + scale(recency) + sess + (1 + scale(order)|subj))
 anova(stat_learn)
+
+# save residuals
+df_correct$resid = resid(stat_learn)
+write.csv(df_correct, file = 'behavior_preprocessed/residuals.csv')
 
 
 ## graph
-stat_graph = lmer(data=df_correct, rt_raw~scale(order)*graph + finger + hand_transition +  block + scale(lag10) + scale(recency) + sess + (1 + scale(order)*graph|subj))
+stat_graph = lmer(data=df_correct, rt~scale(order)*graph + finger + hand_transition +  block + scale(lag10) + scale(recency) + sess + (1 + scale(order)*graph|subj))
 anova(stat_graph)
 
 
 ### surprisal
-stat_surprisal1 = lmer(data=df_modular, rt_raw~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition |subj))
+stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition |subj))
 anova(stat_surprisal1)
 summary(stat_surprisal1)
 
-stat_surprisal2 = lmer(data=df_modular, rt_raw~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) |subj))
+stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) |subj))
 anova(stat_surprisal2)
 summary(stat_surprisal2)
+
+# permutation test: permute transition index within subject
+nSim = 500
+effect_sizes
+for (i in seq(1,nSim)){
+  
+}
 
 # chi sq
 anova(stat_surprisal2, stat_surprisal1, test="Chisq")
 
-stat_surprisal3 = lmer(data=df_modular, rt_raw~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) + scale(recency) |subj))
+stat_surprisal3 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) + scale(recency) |subj))
 anova(stat_surprisal3)
 summary(stat_surprisal3)
 
@@ -108,12 +119,12 @@ summary(stat_surprisal3)
 anova(stat_surprisal3, stat_surprisal2, test="Chisq")
 
 # no pooling
-stat_no_pool = lm.beta(lm(data=df_modular, rt_raw~scale(order)*transition + finger + hand_transition +  block + scale(lag10) + scale(recency) +sess +  subj))
+stat_no_pool = lm.beta(lm(data=df_modular, rt~scale(order)*transition + finger + hand_transition +  block + scale(lag10) + scale(recency) +sess +  subj))
 anova(stat_no_pool)
 summary(stat_no_pool)
 
 # full pooling
-stat_pool = lm.beta(lm(data=filter(df_modular, subj == '6'), rt_raw~scale(order)*transition + finger + hand_transition +  block + scale(lag10) + sess + scale(recency)))
+stat_pool = lm.beta(lm(data=filter(df_modular, subj == '6'), rt~scale(order)*transition + finger + hand_transition +  block + scale(lag10) + sess + scale(recency)))
 anova(stat_pool)
 summary(stat_pool)
 
