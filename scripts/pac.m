@@ -68,7 +68,7 @@ for i = 1:numel(elec_labels)
     
     % get inst phase
     for t = 1:nGoodTrial
-        curr_phase.trial{t} = atan(imag(curr_phase.trial{t})./real(curr_phase.trial{t}));
+        curr_phase.trial{t} = (atan2(imag(curr_phase.trial{t}),real(curr_phase.trial{t})));
     end
     
     phase{i} = curr_phase;
@@ -110,7 +110,7 @@ binned_amp = zeros(nBin,nElec);
 indices = cell(nElec, 1);
 
 % -pi/2 - pi/2
-angles = linspace(-pi/2, pi/2, 100);
+angles = linspace(-pi, pi, 100);
 [~,edges] = discretize(angles, nBin);
 
 for i = 1:nElec
@@ -140,7 +140,7 @@ end
 
 %% Get modulation index
 
-uni_dist = repmat(unifpdf(linspace(-pi/2, pi/2, nBin),-pi/2,pi/2), nElec, 1);
+uni_dist = repmat(unifpdf(linspace(-pi, pi, nBin),-pi,pi), nElec, 1);
 KL_dist = KLDiv(binned_amp', uni_dist);
 mod_idx = KL_dist./log10(nBin);
 
@@ -154,7 +154,7 @@ sig_contrast = mod.p < 0.05 | ramp.p < 0.05;
 sig_elecs = ramp.elecs(sig_contrast);
 
 nSim = 200;
-uni_dist = repmat(unifpdf(linspace(-pi/2, pi/2, nBin),-pi/2,pi/2), nSim, 1);
+uni_dist = repmat(unifpdf(linspace(-pi, pi, nBin),-pi,pi), nSim, 1);
 surrogate_dist = zeros(sum(sig_contrast), nBin, nSim);
 mi_surr = zeros(nSim, sum(sig_contrast));
 

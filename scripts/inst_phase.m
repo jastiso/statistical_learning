@@ -5,6 +5,7 @@
 clear
 
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
+addpath(genpath('/Users/stiso/Documents/Code/graph_learning/'))
 addpath(genpath('/Users/stiso/Documents/MATLAB/CircStat2012a/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
@@ -64,7 +65,7 @@ wave = ft_preprocessing(cfg, ft_data);
 
 phi = zeros(nElec, min_rt, nGoodTrial);
 for t = 1:nGoodTrial
-    phi(:,:,t) = atan(imag(wave.trial{t}(:,1:min_rt))./real(wave.trial{t}(:,1:min_rt)));
+    phi(:,:,t) = (atan2(imag(wave.trial{t}(:,1:min_rt)),real(wave.trial{t}(:,1:min_rt))));
 end
 
 
