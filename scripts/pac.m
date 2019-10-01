@@ -81,7 +81,7 @@ end
 % get one for each elec
 amp = cell(nElec,1);
 for i = 1:numel(elec_labels)
-
+    
     cfg = [];
     cfg.bpfilter = 'yes';
     cfg.channel = elec_labels{i};
@@ -166,7 +166,7 @@ for i = 1:sum(sig_contrast)
     elec_idx = find(strcmpi(elec_labels, sig_elecs{i}));
     
     % amplitudes
-    amp_vect = cell2mat(amp{i}.trial);
+    amp_vect = cell2mat(amp{elec_idx}.trial);
     for n = 1:nSim
         % repeat process with single random cut through the trials (keep at
         % least 5)
@@ -205,4 +205,97 @@ for i = 1:sum(sig_contrast)
 end
 
 
+%% Test for coupleing to the hippocampus from other regions
+
+hpc_idx = cellfun(@(x) contains(x, 'hippocampus', 'IgnoreCase', true), AAL(:,1));
+hpc_phase = indices(hpc_idx);
+
+binned_amp_hpc = zeros(nBin,sum(sig_contrast),sum(hpc_idx));
+
+for i = 1:sum(sig_contrast)
+    curr_elec = find(strcmpi(elec_labels, sig_elecs{i}));
+    
+    for j = 1:sum(hpc_idx)
+        
+        % vectorize
+        amp_vect = cell2mat(amp{curr_elec}.trial);
+        
+        % get indices for bins
+        ind = hpc_phase{j};
+        
+        % avg amp over bins
+        binned_amp_hpc(:,i,j) = accumarray(ind', amp_vect, [nBin, 1], @mean);
+        
+        figure(1); clf;
+        bar(edges(1:end-1), binned_amp_hpc(:,i,j), 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8)
+        title(['PAC ', AAL{curr_elec,1}])
+        saveas(gca, [img_dir, '/PAC_HPC_', elec_labels{curr_elec}, '_', num2str(j), '.png'], 'png')
+    end
+end
+
+% normalize over all bins
+binned_amp_hpc = binned_amp_hpc./sum(binned_amp_hpc,1);
+
+% get MI
+uni_dist = repmat(unifpdf(linspace(-pi, pi, nBin),-pi,pi), sum(sig_contrast), 1);
+mi_hpc = zeros(sum(sig_contrast),sum(hpc_idx));
+for i = 1:sum(hpc_idx)
+    dist = KLDiv(binned_amp_hpc(:,:,i)', uni_dist);
+    mi_hpc(:,i) = dist./log10(nBin);
+end
+
+% test surrogate
+uni_dist = repmat(unifpdf(linspace(-pi, pi, nBin),-pi,pi), nSim, 1);
+surrogate_dist_hpc = zeros(sum(sig_contrast), sum(hpc_idx), nBin, nSim);
+mi_surr_hpc = zeros(nSim, sum(sig_contrast), sum(hpc_idx));
+hpc = find(hpc_idx);
+
+for i = 1:sum(sig_contrast)
+    elec_idx = find(strcmpi(elec_labels, sig_elecs{i}));
+    
+    for j = 1:sum(hpc_idx)
+        curr_hpc = hpc(j);
+        
+        % amplitudes
+        amp_vect = cell2mat(amp{elec_idx}.trial);
+        
+        for n = 1:nSim
+            % repeat process with single random cut through the trials (keep at
+            % least 5)
+            % vectorize
+            cut_ind = randi(nGoodTrial-(2*min_cut),1) + min_cut;
+            
+            phase_vect_surr = cell2mat(phase{curr_hpc}.trial([cut_ind:nGoodTrial, 1:(cut_ind-1)]));
+            
+            % get indices for bins
+            ind_surr = discretize(phase_vect_surr,edges);
+            
+            % get avg amp
+            surrogate_dist_hpc(i, j, :, n) = accumarray(ind_surr', amp_vect, [nBin, 1], @mean);
+            surrogate_dist_hpc(i, j, :, n) = surrogate_dist_hpc(i, j, :, n)./sum(surrogate_dist_hpc(i, j, :, n));
+        end
+        
+        KL_surr = KLDiv(squeeze(surrogate_dist_hpc(i, j, :, :))', uni_dist);
+        mi_surr_hpc(:,i,j) = KL_surr./log10(nBin);
+        
+        % plot
+        figure(i); clf
+        histogram(mi_surr_hpc(:,i,j), 'Normalization', 'probability', 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8); hold on
+        plot([mi_hpc(i, j), mi_hpc(i, j)], [0, .4], 'red', 'linewidth', 3)
+        title(['MI vs Surrogate ', AAL{elec_idx,1}])
+        saveas(gca, [img_dir, '/PAC_surr_HPC_', elec_labels{elec_idx}, '_', num2str(j), '.png'], 'png')
+    end
+end
+
+for i = 1:sum(sig_contrast)
+    elec_idx = find(strcmpi(elec_labels, sig_elecs{i}));
+    
+    for j = 1:sum(hpc_idx)        
+        % z-score
+        z = (mi_hpc(i, j) - mean(mi_surr_hpc(:,i,j)))/std(mi_surr_hpc(:,i,j))
+        % show peak phase
+        [~,ind] = max(binned_amp(:,elec_idx));
+        edges(ind)./pi
+    end
+end
 
