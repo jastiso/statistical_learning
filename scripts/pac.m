@@ -138,13 +138,10 @@ for i = 1:nElec
     saveas(gca, [img_dir, '/PAC_', elec_labels{i}, '.png'], 'png')
 end
 
-
-%% Get modulation index
+% Get modulation index
 
 uni_dist = repmat(unifpdf(linspace(-pi, pi, nBin),-pi,pi), nElec, 1);
-KL_dist = KLDiv(binned_amp', uni_dist);
-mod_idx = KL_dist./log10(nBin);
-
+mod_idx = mod_index(binned_amp', uni_dist);
 
 %% Make surrogate data
 % using surrogate approach that cuts the raw data at a single point and
@@ -157,7 +154,7 @@ sig_contrast = mod.p < 0.05 | ramp.p < 0.05;
 sig_elecs = ramp.elecs(sig_contrast);
 
 nSim = 500;
-min_cut = 5;
+min_cut = 1;
 uni_dist = repmat(unifpdf(linspace(-pi, pi, nBin),-pi,pi), nSim, 1);
 surrogate_dist = zeros(sum(sig_contrast), nBin, nSim);
 mi_surr = zeros(nSim, sum(sig_contrast));
@@ -167,29 +164,15 @@ for i = 1:sum(sig_contrast)
     
     % amplitudes
     amp_vect = cell2mat(amp{elec_idx}.trial);
-    for n = 1:nSim
-        % repeat process with single random cut through the trials (keep at
-        % least 5)
-        % vectorize
-        cut_ind = randi(nGoodTrial-(2*min_cut),1) + min_cut;
-        
-        phase_vect_surr = cell2mat(phase{i}.trial([cut_ind:nGoodTrial, 1:(cut_ind-1)]));
-        
-        % get indices for bins
-        ind_surr = discretize(phase_vect_surr,edges);
-        
-        % get avg amp
-        surrogate_dist(i, :, n) = accumarray(ind_surr', amp_vect, [nBin, 1], @mean);
-        surrogate_dist(i, :, n) = surrogate_dist(i, :, n)./sum(surrogate_dist(i, :, n));
-    end
+
+    surrogate_dist(i,:,:) = pac_surr_cut(nSim, min_cut, phase{i}.trial, amp_vect, nBin, edges);
     
-    KL_surr = KLDiv(squeeze(surrogate_dist(i, :, :))', uni_dist);
-    mi_surr(:,i) = KL_surr./log10(nBin);
+    mi_surr(:,i) = mod_index(squeeze(surrogate_dist(i, :, :))', uni_dist);
     
     % plot
     figure(i); clf
     histogram(mi_surr(:,i), 'Normalization', 'probability', 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8); hold on
-    plot([mod_idx(elec_idx), mod_idx(elec_idx)], [0, .4], 'red', 'linewidth', 3)
+    plot([mod_idx(elec_idx), mod_idx(elec_idx)], [0, .3], 'red', 'linewidth', 3)
     title(['MI vs Surrogate ', AAL{elec_idx,1}])
     saveas(gca, [img_dir, '/PAC_surr_', elec_labels{elec_idx}, '.png'], 'png')
     
@@ -198,10 +181,11 @@ end
 for i = 1:sum(sig_contrast)
     elec_idx = find(strcmpi(elec_labels, sig_elecs{i}));
     % z-score
-    z = (mod_idx(elec_idx) - mean(mi_surr(:,i)))/std(mi_surr(:,i))
+    fprintf('For electrode %s, z = %d\n', elec_labels{elec_idx},...
+        (mod_idx(elec_idx) - mean(mi_surr(:,i)))/std(mi_surr(:,i)));
     % show peak phase
     [~,ind] = max(binned_amp(:,elec_idx));
-    edges(ind)./pi
+    fprintf('The peak of the bined amplitudes is at %d pi \n', edges(ind)./pi)
 end
 
 
@@ -240,8 +224,7 @@ binned_amp_hpc = binned_amp_hpc./sum(binned_amp_hpc,1);
 uni_dist = repmat(unifpdf(linspace(-pi, pi, nBin),-pi,pi), sum(sig_contrast), 1);
 mi_hpc = zeros(sum(sig_contrast),sum(hpc_idx));
 for i = 1:sum(hpc_idx)
-    dist = KLDiv(binned_amp_hpc(:,:,i)', uni_dist);
-    mi_hpc(:,i) = dist./log10(nBin);
+    mi_hpc(:,i) = mod_index(binned_amp_hpc(:,:,i)', uni_dist);
 end
 
 % test surrogate
@@ -258,30 +241,15 @@ for i = 1:sum(sig_contrast)
         
         % amplitudes
         amp_vect = cell2mat(amp{elec_idx}.trial);
+
+        surrogate_dist_hpc(i, j, :, :) = pac_surr_cut(nSim, min_cut, phase{curr_hpc}.trial, amp_vect, nBin, edges);
         
-        for n = 1:nSim
-            % repeat process with single random cut through the trials (keep at
-            % least 5)
-            % vectorize
-            cut_ind = randi(nGoodTrial-(2*min_cut),1) + min_cut;
-            
-            phase_vect_surr = cell2mat(phase{curr_hpc}.trial([cut_ind:nGoodTrial, 1:(cut_ind-1)]));
-            
-            % get indices for bins
-            ind_surr = discretize(phase_vect_surr,edges);
-            
-            % get avg amp
-            surrogate_dist_hpc(i, j, :, n) = accumarray(ind_surr', amp_vect, [nBin, 1], @mean);
-            surrogate_dist_hpc(i, j, :, n) = surrogate_dist_hpc(i, j, :, n)./sum(surrogate_dist_hpc(i, j, :, n));
-        end
-        
-        KL_surr = KLDiv(squeeze(surrogate_dist_hpc(i, j, :, :))', uni_dist);
-        mi_surr_hpc(:,i,j) = KL_surr./log10(nBin);
+        mi_surr_hpc(:,i,j) = mod_index(squeeze(surrogate_dist_hpc(i, j, :, :))', uni_dist);
         
         % plot
         figure(i); clf
         histogram(mi_surr_hpc(:,i,j), 'Normalization', 'probability', 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8); hold on
-        plot([mi_hpc(i, j), mi_hpc(i, j)], [0, .4], 'red', 'linewidth', 3)
+        plot([mi_hpc(i, j), mi_hpc(i, j)], [0, .3], 'red', 'linewidth', 3)
         title(['MI vs Surrogate ', AAL{elec_idx,1}])
         saveas(gca, [img_dir, '/PAC_surr_HPC_', elec_labels{elec_idx}, '_', num2str(j), '.png'], 'png')
     end
@@ -292,10 +260,11 @@ for i = 1:sum(sig_contrast)
     
     for j = 1:sum(hpc_idx)        
         % z-score
-        z = (mi_hpc(i, j) - mean(mi_surr_hpc(:,i,j)))/std(mi_surr_hpc(:,i,j))
+            fprintf('For electrode %s with %s, z = %d\n', elec_labels{elec_idx},...
+                elec_labels{hpc(j)}, (mi_hpc(i, j) - mean(mi_surr_hpc(:,i,j)))/std(mi_surr_hpc(:,i,j)));
         % show peak phase
         [~,ind] = max(binned_amp(:,elec_idx));
-        edges(ind)./pi
+        fprintf('The peak of the bined amplitudes is at %d pi \n', edges(ind)./pi)
     end
 end
 
