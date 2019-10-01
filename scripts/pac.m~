@@ -10,7 +10,7 @@ addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(genpath('/Users/stiso/Documents/Code/graph_learning/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
-subj = '4';
+subj = '2';
 save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
 img_dir = ['/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_img/subj', subj];
@@ -157,7 +157,6 @@ sig_contrast = mod.p < 0.05 | ramp.p < 0.05;
 sig_elecs = ramp.elecs(sig_contrast);
 
 nSim = 500;
-min_cut = 5;
 uni_dist = repmat(unifpdf(linspace(-pi, pi, nBin),-pi,pi), nSim, 1);
 surrogate_dist = zeros(sum(sig_contrast), nBin, nSim);
 mi_surr = zeros(nSim, sum(sig_contrast));
@@ -168,18 +167,17 @@ for i = 1:sum(sig_contrast)
     % amplitudes
     amp_vect = cell2mat(amp{i}.trial);
     for n = 1:nSim
-        % repeat process with single random cut through the trials (keep at
-        % least 5)
+        % repeat process with single random cut through 
         % vectorize
-        cut_ind = randi(nGoodTrial-(2*min_cut),1) + min_cut;
-        
-        phase_vect_surr = cell2mat(phase{i}.trial([cut_ind:nGoodTrial, 1:(cut_ind-1)]));
+        phase_vect = cell2mat(phase{i}.trial);
+        amp_vect = cell2mat(amp{i}.trial);
         
         % get indices for bins
-        ind_surr = discretize(phase_vect_surr,edges);
+        ind = discretize(phase_vect,edges);
+        indices{i} = ind;
         
         % get avg amp
-        surrogate_dist(i, :, n) = accumarray(ind_surr', amp_vect, [nBin, 1], @mean);
+        surrogate_dist(i, :, n) = accumarray(shuff', amp_vect, [nBin, 1], @mean);
         surrogate_dist(i, :, n) = surrogate_dist(i, :, n)./sum(surrogate_dist(i, :, n));
     end
     
@@ -203,6 +201,10 @@ for i = 1:sum(sig_contrast)
     [~,ind] = max(binned_amp(:,elec_idx));
     edges(ind)./pi
 end
+
+
+%% control for power in theta
+
 
 
 
