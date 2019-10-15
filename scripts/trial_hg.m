@@ -30,7 +30,7 @@ nElec = numel(elec_labels);
 hg = [70:250];
 
 
-%% Get power at peak index
+%% Get power at hg index
 
 cfg = [];
 cfg.method = 'mtmfft'; 
@@ -85,9 +85,9 @@ for i = 1:nElec
     count_node = zeros(nNode);
     
     cnt = 0; % not zero because j counter starts at 2
-    for j = 2:numel(walk)
-        prev = walk(j-1) + 1;
-        curr = walk(j) + 1;
+    for j = 2:numel(rec_walk)
+        prev = rec_walk(j-1) + 1;
+        curr = rec_walk(j) + 1;
         if good_trials(j)
             cnt = cnt + 1;
             power_node(prev,curr,i) = power_node(prev,curr,i) + hg_power(i,cnt);

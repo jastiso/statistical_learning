@@ -26,26 +26,18 @@ load([save_dir, subj, '/events.mat'])
 %load([save_dir, subj, '/trans_idx.mat'])
 if numel(sessions) > 1
     data = data_all;
-else
-    data(1).sess = data;
 end
 
 % analysis varaibles
 freqs = 0:2:srate/2;
 nTrial = size(events,1);
-nElec = numel(elec_labels);
+nElec = size(data,1);
 nFreq = numel(freqs);
 nSess = numel(sessions);
 
 % timing varaibles
-exp_st = zeros(nSess,1);
-exp_en = zeros(nSess,1);
-
-for i = 1:nSess
-    curr = events(events(:,3) == i,:);
-    exp_st(i) = curr(1,1);
-    exp_en(i) = curr(end,2);
-end
+exp_st = events(1);
+exp_en = events(end);
 
 %freqs variables
 theta = [4,12];
@@ -59,25 +51,24 @@ step = 1000; %in ms
 filter = 1; % with ot without lowpass alaising filter
 
 spec = cell(nElec,nSess); % initialize
-for s = 1:numel(sessions)
-    for j = 1:nElec
-        
-        
-        spec{j,s} = get_IRASA_spec(data(s).sess(j,:), exp_st(s), exp_en(s), srate, win_length, step, filter);
-        
-        % plot
-        % show averaged fractal and oscillatory power spectrum
-        figure(1); clf;
-        subplot(2,1,1);
-        loglog(spec{j}.freq,mean(spec{j}.mixd,2),'b',  'linewidth', 2); hold on
-        loglog(spec{j}.freq,mean(spec{j}.frac,2),'r', 'linewidth', 2);
-        %title(AAL{j});
-        subplot(2,1,2);
-        plot(spec{j}.freq, mean(spec{j}.osci,2), 'linewidth', 2); hold on
-        shade_plot(spec{j}.freq', mean(spec{j}.osci,2)', (std(spec{j}.osci,[],2))', rgb("slategrey"), 0.4);
-        saveas(gca, [img_dir, '/IRASA_sess', num2str(s), '_', elec_labels{j}, '.png'], 'png')
-        
-    end
+for s = 1:numel(
+for j = 1:nElec
+    
+    
+    spec{j} = get_IRASA_spec(data(j,:), exp_st, exp_en, srate, win_length, step, filter);
+    
+    % plot
+    % show averaged fractal and oscillatory power spectrum
+    figure(1); clf;
+    subplot(2,1,1);
+    loglog(spec{j}.freq,mean(spec{j}.mixd,2),'b',  'linewidth', 2); hold on
+    loglog(spec{j}.freq,mean(spec{j}.frac,2),'r', 'linewidth', 2);
+    title(AAL{j});
+    subplot(2,1,2);
+    plot(spec{j}.freq, mean(spec{j}.osci,2), 'linewidth', 2); hold on
+    shade_plot(spec{j}.freq', mean(spec{j}.osci,2)', (std(spec{j}.osci,[],2))', rgb("slategrey"), 0.4);
+    saveas(gca, [img_dir, '/IRASA_', elec_labels{j}, '.png'], 'png')
+    
 end
 
 save([r_dir, 'subj', subj, '/IRASA.mat'], 'spec')

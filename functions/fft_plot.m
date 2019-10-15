@@ -1,12 +1,17 @@
-function [f,P1] = fft_plot(x,L,srate)
+function [f,pxx] = fft_plot(x,win_len, srate)
 % makes an FFT plot
-% input (x) should be a vector
+% function treats the columns as independent channels
+% win_length is the length of the sample for each estimate
 
-Y = fft(x);
-P2 = abs(Y/L);
-P1 = P2(1:L/2+1);
-f = srate*(0:(L/2))/L;
-plot(f,P1)
+% Note that this is mostly for plotting, I would not use these parameters
+% to obtain power estimates for analysis
+
+[pxx,f] = pwelch(x,hanning(win_len),0, [], srate);
+
+plot(f,10*log10(pxx), 'linewidth', 2)
+title('FFT')
+xlabel('Frequency (Hz)')
+ylabel('Power (dB)')
 
 end
 

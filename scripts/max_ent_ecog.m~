@@ -1,0 +1,86 @@
+%% Fit maximum entropy model
+
+clear
+
+addpath(genpath('/Users/stiso/Documents/Code/graph_learning/'))
+addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
+% define variables
+save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/behavior_preprocessed/';
+ephys_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
+img_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/behavior_preprocessed/images/';
+
+
+% load stuff
+data = readtable([save_dir, 'residuals.csv']);
+
+
+%% Get model
+
+subjs = [{'2'}, {'4'}, {'6'}];
+nSubj = numel(subjs);
+nNode = 10;
+beta = zeros(nSubj,1);
+r0 = zeros(nSubj,1);
+r1 = zeros(nSubj,1);
+E = zeros(nSubj,1);
+diff = zeros(nSubj,1);
+A = [0 1 1 1 0 0 0 0 0 1;
+    1 0 1 1 1 0 0 0 0 0;
+    1 1 0 1 1 0 0 0 0 0;
+    1 1 1 0 1 0 0 0 0 0;
+    0 1 1 1 0 1 0 0 0 0;
+    0 0 0 0 1 0 1 1 1 0;
+    0 0 0 0 0 1 0 1 1 1;
+    0 0 0 0 0 1 1 0 1 1;
+    0 0 0 0 0 1 1 1 0 1
+    1 0 0 0 0 0 1 1 1 0];
+A_hat = zeros(nSubj, nNode, nNode);
+
+for s = 1:nSubj
+    % select subject
+    curr = data(strcmpi(data.subj,subjs{s}),:);
+    
+    rt = data.resid;
+    trials = data.order;
+    
+    load([ephys_dir, subjs{s}, '/task_data.mat'])
+    
+    [beta(s), r0(s), r1(s), E(s), diff(s)] = learn_linear_real_full(walk, rt, trials);
+    
+    % get A_hat
+    A_hat(s, :, :) = (1 - exp(-beta(s)))*A*(eye(nNode) - exp(-beta(s))*A)^(-1);
+    
+    figure(1); clf
+    imagesc(squeeze(A_hat(s,:,:))); colorbar
+    saveas(gca, [img_dir, 'A_hat_', num2str(s), '.png'], 'png')
+
+end
+save([save_dir, 'max_ent.mat'], 'beta', 'r0', 'r1', 'E', 'diff', 'A_hat')
+
+
+%% plot
+
+figure(1); clf
+histogram(log10(beta), 'facecolor', rgb('steelblue'), 'facealpha', 0.6, 'edgecolor', 'white')
+xlabel('log( beta )')
+ylabel('Count')
+saveas(gca, [img_dir, 'ecog_betas.png'], 'png')
+
+
+%% Save A_hat contrast
+
+for s = 1:nSubj
+    % select subject
+    curr = squeeze(A_hat(s,:,:));
+    
+    load([ephys_dir, subjs{s}, '/task_data.mat'])
+    load([ephys_dir, subjs{s}, '/good_events.mat'])
+    
+    max_ent_cont = zeros(size(walk));
+    
+    transitions = [walk; circshift(walk,1)];
+    for i = 2:numel(walk)
+        max_ent_cont(i) = curr(transitions(1,i),transitions(2,i));
+    end
+end
+

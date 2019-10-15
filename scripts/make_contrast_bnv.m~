@@ -1,8 +1,7 @@
 %% Plot electrodes for each contrast
 clear
 
-addpath(genpath('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/'))
-addpath(genpath('/Users/stiso/Documents/MATLAB/Colormaps/'))
+addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 subjs = [{'2'},{'4'}];
 
@@ -47,8 +46,6 @@ ramp = readtable([r_dir, 'subj' subj, '/ramp_stats', ext, '.csv']);
 ramp = ramp(:,2:end);
 mod = readtable([r_dir, 'subj' subj, '/mod_stats', ext, '.csv']);
 mod = mod(:,2:end);
-max_ent = readtable([r_dir, 'subj' subj, '/max_ent_stats', ext, '.csv']);
-max_ent = max_ent(:,2:end);
 fname = dir([save_dir, subj, '/*/electrodenames_coordinates_mni.csv']);
 coords = readtable([fname.folder, '/', fname.name]);
 coords.Var1 = fix_names(coords.Var1);
@@ -56,11 +53,9 @@ coords.Var1 = fix_names(coords.Var1);
 % find significant elecs
 sig_idx_ramp = logical(ramp.p < 0.05);
 sig_idx_mod = logical(mod.p < 0.05);
-sig_idx_max_ent = logical(max_ent.p < 0.05);
 
 mod = mod(sig_idx_mod,:);
 ramp = ramp(sig_idx_ramp,:);
-max_ent = max_ent(sig_idx_max_ent,:);
 
 % get the x y and z coordinates of the significant elecs
 if size(mod,1) ~= 0
@@ -73,12 +68,6 @@ if size(ramp,1) ~= 0
     ramp_coord_idx = ismember(cell2mat(coords.Var1),cell2mat(ramp.elecs),'rows');
 else
     ramp_coord_idx = false(size(cell2mat(coords.Var1)));
-end
-
-if size(max_ent,1) ~= 0
-    max_ent_coord_idx = ismember(cell2mat(coords.Var1),cell2mat(max_ent.elecs),'rows');
-else
-    max_ent_coord_idx = false(size(cell2mat(coords.Var1)));
 end
 
 % concatenate
@@ -96,13 +85,6 @@ c_mod = [c_mod; mod.betas];
 s_mod = [s_mod; -log10(mod.p)];
 labels_mod = vertcat(labels_mod, mod.region);
 
-x_max_ent = [x_max_ent; coords.Var2(max_ent_coord_idx)];
-y_max_ent = [y_max_ent; coords.Var3(max_ent_coord_idx)];
-z_max_ent = [z_max_ent; coords.Var4(max_ent_coord_idx)];
-c_max_ent = [c_max_ent; max_ent.betas];
-s_max_ent = [s_max_ent; -log10(max_ent.p)];
-labels_max_ent = vertcat(labels_max_ent, max_ent.region);
-
 end
 
 % save node file, with x, y, z, beta, p, AAL label
@@ -112,5 +94,4 @@ write_bv_node( ramp_file, x_ramp, y_ramp, z_ramp, c_ramp, s_ramp, labels_ramp);
 mod_file = [r_dir, 'mod_node', ext, '.node'];
 write_bv_node( mod_file, x_mod, y_mod, z_mod, c_mod, s_mod, labels_mod);
 
-max_ent_file = [r_dir, 'max_ent_node', ext, '.node'];
-write_bv_node( max_ent_file, x_max_ent, y_max_ent, z_max_ent, c_max_ent, s_max_ent, labels_max_ent);
+

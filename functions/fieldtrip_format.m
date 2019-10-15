@@ -1,4 +1,4 @@
-function [ft_data] = fieldtrip_format(data,srate, elec_labels, trl)
+function [ft_data] = fieldtrip_format(data, srate, elec_labels, trl)
 %get data into fieldtrip format
 
 ft_data = [];

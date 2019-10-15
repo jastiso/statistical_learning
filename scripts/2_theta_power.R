@@ -13,10 +13,11 @@ library(plyr)
 library(lm.beta)
 setwd("/Users/stiso/Documents/Python/graphLearning/ECoG data/")
 
-s = 4
+s = 2
 load('behavior_preprocessed/clean.RData')
 data = readMat(paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/peak_power.mat',sep=""))
-  
+max_ent = readMat(paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/max_ent_contrast.mat',sep=""))
+
 # format 
 df_subj = dplyr::filter(df_correct, subj == s)
 elecs = unlist(data$elec.labels)
@@ -25,8 +26,8 @@ regions = unlist(data$region)
 # get only elecs in grey matter
 elecs = elecs[unlist(lapply(regions, function(x) x != "No_label"))]
 
-df_pow <- data.frame(matrix(ncol = length(elecs) + 2, nrow = length(t(data$good.trial.idx))))
-nam <- c("order", "mod", elecs)
+df_pow <- data.frame(matrix(ncol = length(elecs) + 3, nrow = length(t(data$good.trial.idx))))
+nam <- c("order", "mod", "max_ent", elecs)
 colnames(df_pow) <- nam
 df_pow$order = t(data$good.trial.idx)
 df_pow$mod = data$module.idx
@@ -87,3 +88,24 @@ ramp_stats = data.frame(elecs = elecs, p = p.adjust(ps_ramp, n=length(elecs), me
 write.csv(ramp_stats, paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/ramp_stats.csv', sep=""))
 
 
+
+# repeat for max-ent contrast
+models_max_ent = list()
+ps_max_ent = list()
+betas_max_ent = list()
+for (e in elecs){
+  formula = paste(e, '~ mod + order + finger + hand + hand_transition')
+  fit = lm(data=df_fit, formula)
+  anova(fit)
+  ps_max_ent[[e]] = (anova(fit)$`Pr(>F)`[1])
+  betas_max_ent[[e]] = summary(lm.beta(fit))$coefficients[2,2] # standard beta
+  models_max_ent[[e]] = fit
+}
+p.adjust(ps_max_ent, n=length(elecs), method="fdr")
+sum(p.adjust(ps_max_ent, n=length(elecs), method="fdr") < 0.05)
+betas_max_ent[p.adjust(ps_max_ent, n=length(elecs), method="fdr") < 0.05]
+print(paste("Electrode with statistically significant max_ent contrast: ", unlist(elecs[p.adjust(ps_max_ent, n=length(elecs), method="fdr") < 0.05]), sep=""))
+# save file
+max_ent_stats = data.frame(elecs = elecs, p = p.adjust(ps_max_ent, n=length(elecs), method="fdr"), betas = unlist(betas_max_ent), 
+                        region = regions[unlist(lapply(regions, function(x) x != "No_label"))])
+write.csv(max_ent_stats, paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/max_ent_stats.csv', sep=""))

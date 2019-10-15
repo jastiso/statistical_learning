@@ -19,10 +19,6 @@ function [beta, r0, r1, E, diff] = learn_linear_real_full(S, rt, trials)
 % that here we search for the optimal beta parameter from which to start
 % gradient descent.
 
-% C4ange log:
-% Oct 20190:    JS added some extra reporters and warning, so that it tells me if it
-%               reaches 400 steps
-
 % Other model parameters:
 alpha = 1; % Ignore this parameter
 diffThreshold = 10^(-6); % Precision with which we learn beta parameter
@@ -123,7 +119,9 @@ while t < 400 && (t < 10 || diff > diffThreshold)
     % Print some things:
     t = t + 1
     beta
-
+%     r0
+%     r1
+    %E
 	dEdb
     
 end
