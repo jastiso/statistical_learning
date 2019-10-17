@@ -71,6 +71,7 @@ saveas(gca, [img_dir, 'ecog_betas.png'], 'png')
 
 for s = 1:nSubj
     % select subject
+    fptintf('************** Subj %s ************', subjs{s});
     curr = squeeze(A_hat(s,:,:));
     
     load([ephys_dir, subjs{s}, '/task_data.mat'])

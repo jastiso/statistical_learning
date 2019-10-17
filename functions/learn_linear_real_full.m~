@@ -117,11 +117,10 @@ while t < 400 && (t < 10 || diff > diffThreshold)
     
     % Print some things:
     t = t + 1;
-    fprintf('Current step: %d, beta = %d, dE/db = %d\n', t, beta, dEdb)
+    fprintf('Current step: %d, beta = %d, dE/db = %d', t, beta, dEdb)
     
     if t == 400
         warning('This subject reached the maximum number of steps! You might want to increase your step size')
     end
-    
     
 end

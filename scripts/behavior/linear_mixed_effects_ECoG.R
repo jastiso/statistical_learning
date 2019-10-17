@@ -35,11 +35,11 @@ p<-ggplot(df_clean, aes(x=rt_raw)) +
 p
 ggsave(paste( 'data/preprocessed/images/rt_ecog.png', sep = ''))
 # make rts inverse
-df_clean$rt = 1/df_clean$rt_raw
+df_clean$rt = log10(df_clean$rt_raw)
 p<-ggplot(df_clean, aes(x=rt)) + 
   geom_histogram(fill='lightblue', color='white')
 p
-ggsave(paste( 'data/preprocessed/images/rt_inv_ecog.png', sep = ''))
+ggsave(paste( 'data/preprocessed/images/rt_log_ecog.png', sep = ''))
 
 summary(df_clean)
 

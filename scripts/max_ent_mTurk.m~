@@ -41,11 +41,9 @@ save([save_dir, 'max_ent.mat'], 'beta', 'r0', 'r1', 'E', 'diff')
 %% Plot
 
 plot_beta = beta;
-plot_beta(beta == 1000) = 4;
-plot_beta(beta == 0) = -1;
-
+plot_beta(
 figure(1); clf
-histogram((plot_beta), 20, 'facecolor', rgb('steelblue'), 'facealpha', 0.6, 'edgecolor', 'white')
+histogram(log10(beta), 20, 'facecolor', rgb('steelblue'), 'facealpha', 0.6, 'edgecolor', 'white')
 xlabel('log( beta )')
 ylabel('Count')
 saveas(gca, [img_dir, 'mTurk_betas.png'], 'png')
