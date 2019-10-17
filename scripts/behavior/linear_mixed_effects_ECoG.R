@@ -9,6 +9,7 @@ library(RColorBrewer)
 library(wesanderson)
 library(ez)
 library(plyr)
+library(lm.beta)
 setwd("/Users/stiso/Documents/Python/graphLearning/ECoG data/")
 
 df = read.csv('behavior_preprocessed/group_behavior.csv')
@@ -67,8 +68,6 @@ for (t in 1:length(finger)){
 }
 df_correct$finger = as.factor(finger)
 
-#df_correct = na.omit(df_correct$recency)
-
 df_modular = dplyr::filter(df_correct, graph == "modular")
 
 save(df_correct, file = 'behavior_preprocessed/clean.RData')
@@ -79,7 +78,7 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 # LMER
 
 ## learn
-stat_learn = lmer(data=df_correct, rt~scale(order) * graph + finger + hand_transition + block + scale(lag10) + scale(recency) + sess + (1 + scale(order)|subj))
+stat_learn = lmer(data=df_correct, rt~scale(log10(order)) * graph + finger + hand_transition + block + scale(lag10) + sess + (1 + scale(log10(order))|subj))
 anova(stat_learn)
 
 # save residuals
@@ -88,16 +87,18 @@ write.csv(df_correct, file = 'behavior_preprocessed/residuals.csv')
 
 
 ## graph
-stat_graph = lmer(data=df_correct, rt~scale(order)*graph + finger + hand_transition +  block + scale(lag10) + scale(recency) + sess + (1 + scale(order)*graph|subj))
+stat_graph = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + hand_transition +  block + scale(lag10) + sess + (1 + scale(log10(order))*graph|subj))
 anova(stat_graph)
 
 
 ### surprisal
-stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition |subj))
+stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + 
+                         (1 + scale(log10(order))*transition |subj))
 anova(stat_surprisal1)
 summary(stat_surprisal1)
 
-stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) |subj))
+stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + 
+                         (1 + scale(log10(order))*transition + scale(lag10) |subj))
 anova(stat_surprisal2)
 summary(stat_surprisal2)
 
@@ -111,20 +112,13 @@ for (i in seq(1,nSim)){
 # chi sq
 anova(stat_surprisal2, stat_surprisal1, test="Chisq")
 
-stat_surprisal3 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + scale(recency) + (1 + scale(order)*transition + scale(lag10) + scale(recency) |subj))
-anova(stat_surprisal3)
-summary(stat_surprisal3)
-
-# chi sq
-anova(stat_surprisal3, stat_surprisal2, test="Chisq")
-
 # no pooling
-stat_no_pool = lm.beta(lm(data=df_modular, rt~scale(order)*transition + finger + hand_transition +  block + scale(lag10) + scale(recency) +sess +  subj))
+stat_no_pool = lm.beta(lm(data=df_modular, rt~scale(order)*transition + finger + hand_transition +  block + scale(lag10) +sess +  subj))
 anova(stat_no_pool)
 summary(stat_no_pool)
 
 # full pooling
-stat_pool = lm.beta(lm(data=filter(df_modular, subj == '6'), rt~scale(order)*transition + finger + hand_transition +  block + scale(lag10) + sess + scale(recency)))
+stat_pool = lm.beta(lm(data=filter(df_modular, subj == '6'), rt~scale(order)*transition + finger + hand_transition +  block + scale(lag10) + sess ))
 anova(stat_pool)
 summary(stat_pool)
 
