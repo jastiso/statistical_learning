@@ -9,10 +9,10 @@ addpath('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/')
 RID = '529';
 subj = '6';
 sessions = [{'1'}, {'2'}];
-save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
+save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 
 % get AAL regions
-load('/Users/stiso/Documents/MATLAB/AAL_regions_by_subject.mat')
+load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/AAL_regions_by_subject.mat')
 AAL_all = data_all;
 eval(['AAL = AAL_all.RID', RID, ';']);
 
