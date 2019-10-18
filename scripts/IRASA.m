@@ -9,7 +9,7 @@ addpath(genpath('/Users/stiso/Documents/MATLAB/eeglab_current/'))
 removepath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/')) % this hides the built in "hann" function
 
 % define variables
-subj = '6';
+subj = '2';
 save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
 img_dir = ['/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_img/subj', subj];
@@ -48,7 +48,7 @@ for i = 1:nSess
 end
 
 %freqs variables
-theta = [4,12];
+theta = [3,12];
 
 
 %% IRASA
