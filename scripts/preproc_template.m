@@ -202,9 +202,4 @@ for i = 1:numel(sessions)
     end
 end
 
-% demean and detrend data
-for i = 1:numel(ft_data.trial)
-    ft_data.trial{i} = ft_data.trial{i} - mean(ft_data.trial{i},2);
-    ft_data.trial{i} = detrend(ft_data.trial{i});
-end
 save([save_dir, subj, '/ft_data.mat'], 'ft_data')

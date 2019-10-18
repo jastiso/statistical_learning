@@ -34,7 +34,7 @@ df = df[!subj_rm,]
 # Clean up - remove columns you dont need, only get correct trials, etc
 
 # might need to change this depending on the task
-df_clean = subset(df, select = -c(walk_id,target,query,phase,node,event))
+df_clean = subset(df, select = -c(target,query,phase,node,event))
 df_clean = na.omit(df_clean)
 summary(df_clean)
 
@@ -112,13 +112,13 @@ df_clean$finger = as.factor(finger)
 p<-ggplot(df_clean, aes(x=rt)) + 
   geom_histogram(fill='pink', color='white')
 p
-ggsave(paste( 'data/preprocessed/images/rt', ext,'.png', sep = ''))
+ggsave(paste( '/data/preprocessed/images/rt', ext,'.png', sep = ''))
 # make rts inverse
 df_clean$rt = log10(df_clean$rt)
 p<-ggplot(df_clean, aes(x=rt)) + 
   geom_histogram(fill='lightblue', color='white')
 p
-ggsave(paste( 'data/preprocessed/images/rt_log', ext,'.png', sep = ''))
+ggsave(paste( 'experiment/data/preprocessed/images/rt_log', ext,'.png', sep = ''))
 
 summary(df_clean)
 
@@ -150,8 +150,9 @@ stat_learn = lmer(data=df_correct, rt~scale(log10(cum_trial)) + scale(log10(tria
 anova(stat_learn)
 
 # save residuals
-df_correct$resid = resid(stat_learn)
-write.csv(df_correct, file = 'data/preprocessed/residuals.csv')
+max_ent_data = select(df_correct, c('walk_id', 'workerid', 'trial', 'is_lattice'))
+max_ent_data$resid = resid(stat_learn)
+write.csv(max_ent_data, file = 'data/preprocessed/residuals.csv')
 
 
 
