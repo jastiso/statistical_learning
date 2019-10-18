@@ -171,7 +171,3 @@ vignettes/*.pdf
 *.pdf
 *.png
 *.jpg
-*.avi
-*.zip
-*.nii.gz
-*/ephys_raw/*RID*
