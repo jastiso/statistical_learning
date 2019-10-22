@@ -143,16 +143,14 @@ end
 uni_dist = repmat(unifpdf(linspace(-pi, pi, nBin),-pi,pi), nPeakElec, 1);
 mod_idx = mod_index(binned_amp', uni_dist);
 
-%% Make surrogate data for within elec PAC
-% only check if this elec has oscillations
+%% Make surrogate data
 % using surrogate approach that cuts the raw data at a single point and
 % flips it (Aru et al)
 
 % load sig elecs from linear models
 osc = readtable([r_dir, 'subj' subj, '/max_ent_stats_hg_osc.csv']);
-reg = readtable([r_dir, 'subj' subj, '/max_ent_stats.csv']);
-sig_contrast = [osc.p < 0.05; reg.p < 0.05];
-sig_elecs = [osc.elecs(osc.p < 0.05); reg.elecs(reg.p < 0.05)];
+sig_contrast = [osc.p < 0.05];
+sig_elecs = [osc.elecs(osc.p < 0.05)];
 
 nSim = 500;
 min_cut = 1;
@@ -163,21 +161,20 @@ mi_surr = zeros(nSim, sum(sig_contrast));
 for i = 1:sum(sig_contrast)
     elec_idx = find(strcmpi(peak_elec_labels, sig_elecs{i}));
     
-    if ~isempty(elec_idx) % if this elec has oscillations
-        % amplitudes
-        amp_vect = cell2mat(amp{elec_idx}.trial);
-        
-        surrogate_dist(i,:,:) = pac_surr_cut(nSim, min_cut, phase{i}.trial, amp_vect, nBin, edges);
-        
-        mi_surr(:,i) = mod_index(squeeze(surrogate_dist(i, :, :))', uni_dist);
-        
-        % plot
-        figure(i); clf
-        histogram(mi_surr(:,i), 'Normalization', 'probability', 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8); hold on
-        plot([mod_idx(elec_idx), mod_idx(elec_idx)], [0, .3], 'red', 'linewidth', 3)
-        title(['MI vs Surrogate ', AAL{elec_idx,1}])
-        saveas(gca, [img_dir, '/PAC_surr_', peak_elec_labels{elec_idx}, '.png'], 'png')
-    end
+    % amplitudes
+    amp_vect = cell2mat(amp{elec_idx}.trial);
+
+    surrogate_dist(i,:,:) = pac_surr_cut(nSim, min_cut, phase{i}.trial, amp_vect, nBin, edges);
+    
+    mi_surr(:,i) = mod_index(squeeze(surrogate_dist(i, :, :))', uni_dist);
+    
+    % plot
+    figure(i); clf
+    histogram(mi_surr(:,i), 'Normalization', 'probability', 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8); hold on
+    plot([mod_idx(elec_idx), mod_idx(elec_idx)], [0, .3], 'red', 'linewidth', 3)
+    title(['MI vs Surrogate ', AAL{elec_idx,1}])
+    saveas(gca, [img_dir, '/PAC_surr_', peak_elec_labels{elec_idx}, '.png'], 'png')
+    
 end
 
 for i = 1:sum(sig_contrast)
@@ -194,9 +191,8 @@ end
 %% Test for coupleing to the hippocampus from other regions
 
 reg = readtable([r_dir, 'subj' subj, '/max_ent_stats.csv']);
-sig_contrast = reg.p < 0.05;
-sig_elecs = reg.elecs(reg.p < 0.05);
-sig_regions = reg.region(sig_contrast);
+sig_contrast = [reg.p < 0.05];
+sig_elecs = [reg.elecs(reg.p < 0.05)];
 
 hpc_idx = cellfun(@(x) contains(x, 'hippocamp', 'IgnoreCase', true), AAL(:,1));
 hpc_phase = indices(hpc_idx);
@@ -219,7 +215,7 @@ for i = 1:sum(sig_contrast)
         
         figure(1); clf;
         bar(edges(1:end-1), binned_amp_hpc(:,i,j), 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8)
-        title(['PAC ', sig_regions{i}])
+        title(['PAC ', AAL{curr_elec,1}])
         saveas(gca, [img_dir, '/PAC_HPC_', elec_labels{curr_elec}, '_', num2str(j), '.png'], 'png')
     end
 end
@@ -257,7 +253,7 @@ for i = 1:sum(sig_contrast)
         figure(i); clf
         histogram(mi_surr_hpc(:,i,j), 'Normalization', 'probability', 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8); hold on
         plot([mi_hpc(i, j), mi_hpc(i, j)], [0, .3], 'red', 'linewidth', 3)
-        title(['MI vs Surrogate ', sig_regions{i}])
+        title(['MI vs Surrogate ', AAL{elec_idx,1}])
         saveas(gca, [img_dir, '/PAC_surr_HPC_', elec_labels{elec_idx}, '_', num2str(j), '.png'], 'png')
     end
 end
@@ -267,8 +263,8 @@ for i = 1:sum(sig_contrast)
     
     for j = 1:sum(hpc_idx)        
         % z-score
-            fprintf('\nFor electrode %s with %s, z = %d\n', elec_labels{elec_idx},...
-                peak_elec_labels{hpc(j)}, round((mi_hpc(i, j) - mean(mi_surr_hpc(:,i,j)))/std(mi_surr_hpc(:,i,j)),2));
+            fprintf('For electrode %s with %s, z = %d\n', elec_labels{elec_idx},...
+                peak_elec_labels{hpc(j)}, (mi_hpc(i, j) - mean(mi_surr_hpc(:,i,j)))/std(mi_surr_hpc(:,i,j)));
         % show peak phase
         [~,ind] = max(binned_amp(:,elec_idx));
         fprintf('The peak of the bined amplitudes is at %d pi \n', edges(ind)./pi)

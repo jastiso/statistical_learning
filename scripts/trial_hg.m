@@ -5,9 +5,9 @@ addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
 subj = '2';
-save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
-r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
-img_dir = ['/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_img/subj', subj];
+save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
+r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
+img_dir = ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj];
 
 % make diractories
 if ~exist(img_dir, 'dir')
@@ -29,6 +29,11 @@ nElec = numel(elec_labels);
 % freq variables
 hg = [70:250];
 
+% task variables - recorded walk (only different if the photodiode messed
+% up, in which case a separate variable is saved in preprocessing)
+if nTrial == numel(walk)
+    rec_walk = walk;
+end
 
 %% Get power at hg index
 

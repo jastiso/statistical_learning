@@ -5,10 +5,10 @@ clear
 addpath(genpath('/Users/stiso/Documents/Code/graph_learning/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
-save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/behavior_preprocessed/';
-ephys_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
-img_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/behavior_preprocessed/images/';
-r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
+save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/behavior_preprocessed/';
+ephys_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
+img_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/behavior_preprocessed/images/';
+r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 
 % load stuff
 data = readtable([save_dir, 'residuals.csv']);
@@ -40,8 +40,8 @@ for s = 1:nSubj
     % select subject
     curr = data(strcmpi(data.subj,subjs{s}),:);
     
-    rt = data.resid;
-    trials = data.order;
+    rt = curr.resid;
+    trials = curr.order;
     
     load([ephys_dir, subjs{s}, '/task_data.mat'])
     
@@ -71,7 +71,7 @@ saveas(gca, [img_dir, 'ecog_betas.png'], 'png')
 
 for s = 1:nSubj
     % select subject
-    fptintf('************** Subj %s ************', subjs{s});
+    fprintf('\n************** Subj %s ************\n', subjs{s});
     curr = squeeze(A_hat(s,:,:));
     
     load([ephys_dir, subjs{s}, '/task_data.mat'])

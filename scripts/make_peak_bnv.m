@@ -6,8 +6,8 @@ addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 subjs = [{'2'},{'4'}];
 
 % define variables
-save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
-r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
+save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
+r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 
 ext = '';
 
@@ -22,7 +22,7 @@ labels = {};
 for i = 1:numel(subjs)
     
 subj = subjs{i};
-img_dir = ['/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_img/subj', subj];
+img_dir = ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj];
 
 % load stuff
 load([r_dir, 'subj' subj, '/theta_peaks', ext, '.mat']); %ps tells you if it was >3std above 1/f
@@ -57,4 +57,7 @@ node_file = [r_dir, 'theta_node', ext,'.node'];
 write_bv_node( node_file, x, y, z, c, s, labels);
 
 
+%% Make Plot
+
+BrainNet_MapCfg('BrainMesh_ICBM152_smoothed.nv',[r_dir, 'theta_node', ext,'.node'],'Cfg.mat');
 

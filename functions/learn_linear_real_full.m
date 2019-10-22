@@ -44,7 +44,7 @@ elseif abs(beta) < .05
 elseif abs(beta) < .1
     stepSize = .001;
 elseif abs(beta) < .5
-    stepSize = .01;
+    stepSize = .05;
 elseif abs(beta) < 1
     stepSize = .1;
 elseif abs(beta) < 3
@@ -55,7 +55,7 @@ else
     stepSize = 100000;
 end
 
-% stepSize = stepSize*10; % Do this if algorithm converges too slowly
+stepSize = stepSize*10; % Do this if algorithm converges too slowly
 % stepSize = stepSize/10; % Do this if algorithm fluctuates wildly
 
 % Trials to include in parameter estimation:

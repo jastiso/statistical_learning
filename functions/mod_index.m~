@@ -8,7 +8,7 @@ function [mi] = mod_index(binned_amp,uni_dist)
 % mi:           modulation index, bounded 0-1
 
 d = KLDiv(binned_amp, uni_dist);
-mi = d./log10(size(binned_amp,2));
+mi = dist./log10(size(binned_amp,2));
 
 end
 

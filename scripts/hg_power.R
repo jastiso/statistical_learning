@@ -11,13 +11,13 @@ library(R.matlab)
 library(ez)
 library(plyr)
 library(lm.beta)
-setwd("/Users/stiso/Documents/Python/graphLearning/ECoG data/")
+setwd("/Users/stiso/Documents/Code/graph_learning/ECoG_data/")
 
-s = 4
+s = 2
 load('behavior_preprocessed/clean.RData')
-data = readMat(paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/hg_power.mat',sep=""))
-theta = readMat(paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/theta_peaks.mat',sep=""))
-max_ent = readMat(paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/max_ent_contrast.mat',sep=""))
+data = readMat(paste('ephys_analysis/subj',s,'/hg_power.mat',sep=""))
+theta = readMat(paste('ephys_analysis/subj',s,'/theta_peaks.mat',sep=""))
+max_ent = readMat(paste('ephys_analysis/subj',s,'/max_ent_contrast.mat',sep=""))
   
 # format 
 df_subj = dplyr::filter(df_correct, subj == s)
@@ -101,7 +101,7 @@ print(paste("Electrode with statistically significant module contrast: ", unlist
 # save file
 mod_stats = data.frame(elecs = elec_group, p = p.adjust(ps, n=length(elec_group), method="fdr"), betas = unlist(betas), 
                        region = region_group)
-write.csv(mod_stats, paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/mod_stats', ext, '.csv', sep=""))
+write.csv(mod_stats, paste('ephys_analysis/subj',s,'/mod_stats', ext, '.csv', sep=""))
 
 # repeat for ramping contrast
 models_ramp = list()
@@ -122,7 +122,7 @@ print(paste("Electrode with statistically significant ramping contrast: ", unlis
 # save file
 ramp_stats = data.frame(elecs = elec_group, p = p.adjust(ps_ramp, n=length(elec_group), method="fdr"), betas = unlist(betas_ramp), 
                         region = region_group)
-write.csv(ramp_stats, paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/ramp_stats', ext, '.csv', sep=""))
+write.csv(ramp_stats, paste('ephys_analysis/subj',s,'/ramp_stats', ext, '.csv', sep=""))
 
 
 # repeat for maximum entropy contrast
@@ -144,6 +144,6 @@ print(paste("Electrode with statistically significant max ent contrast: ", unlis
 # save file
 max_ent_stats = data.frame(elecs = elec_group, p = p.adjust(ps_max_ent, n=length(elec_group), method="fdr"), betas = unlist(betas_max_ent), 
                         region = region_group)
-write.csv(max_ent_stats, paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/max_ent_stats', ext, '.csv', sep=""))
+write.csv(max_ent_stats, paste('ephys_analysis/subj',s,'/max_ent_stats', ext, '.csv', sep=""))
 
 

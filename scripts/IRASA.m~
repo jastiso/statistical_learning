@@ -145,8 +145,17 @@ end
 sum(ps)
 
 hist(peak_power,30)
+% get the top 5% of elecs
+n_sig_elecs = round(nElec.*0.05);
+tmp = sort(peak_power, 'descend');
+sig_idx = false(nElec,1);
+for k = 1:n_sig_elecs
+    sig_idx = sig_idx | (tmp(k) == peak_power);
+end
+AAL(sig_idx,:)
+ps(sig_idx)
 
-save([r_dir, 'subj', subj, '/theta_peaks.mat'], 'peaks', 'ps')
+save([r_dir, 'subj', subj, '/theta_peaks.mat'], 'peaks', 'ps', 'sig_idx')
 
 %% Stats - no filter
 % want to test if the peak in the theta range is greater than 1/f,
