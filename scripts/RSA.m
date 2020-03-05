@@ -4,10 +4,10 @@ clear
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
-subj = '4';
-save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
-r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
-img_dir = ['/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_img/subj', subj];
+subj = '6';
+save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
+r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
+img_dir = ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj];
 
 % make diractories
 if ~exist(img_dir, 'dir')

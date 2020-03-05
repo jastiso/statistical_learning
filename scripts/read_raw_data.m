@@ -14,10 +14,10 @@ clc
 addpath(genpath('/Users/stiso/Documents/MATLAB/ieeg-matlab-1.13.2/'))
 
 % define variables
-HUP_ID = 'HUP196';
-subj = '6';
-sess = '2';
-save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
+HUP_ID = 'HUP198';
+subj = '10';
+sess = '';
+save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 
 % save stuff
 % make directories
@@ -55,7 +55,7 @@ end
 % only run this if you get an error above
 
 if save_flag
-    st = 30953.157505*srate;
+    st = 19939.42*srate;
     if ~isempty(sess)
         save([save_dir, subj, '/sess_', sess, 'start_time.mat'], 'st')
     else
@@ -67,15 +67,21 @@ end
 
 % there are limits on how much data you can request at once.
 % The current (hz * channels * seconds) max is (500 * 130 * 2000)
-data1 = session.data.getvalues(st:dur,1:nElec/2);
+data1 = session.data.getvalues(st:dur,1:nElec/4);
 data1 = data1';
 
-data2 = session.data.getvalues(st:dur,(nElec/2 + 1):nElec);
+data2 = session.data.getvalues(st:dur,(nElec/4 + 1):(nElec/4 + nElec/4));
 data2 = data2';
 
-data = [data1; data2];
+data3 = session.data.getvalues(st:dur,(2*nElec/4 + 1):(2*nElec/4 + nElec/4));
+data3 = data3';
 
-clear data1 data2
+data4 = session.data.getvalues(st:dur,(3*nElec/4 + 1):nElec);
+data4 = data4';
+
+data = [data1; data2; data3; data4];
+
+clear data1 data2 data3 data4
 %% Save raw data before individual preprocessing
 
 % get other useful stuff from header
@@ -97,11 +103,11 @@ if size(pd,2) ~= size(data,2)
     warning('The length of your PD and data are not the same...something went wrong')
 else
     if ~isempty(sess)
-        save([save_dir, subj, '/raw_data_sess', sess, '.mat'], 'data')
+        save([save_dir, subj, '/raw_data_sess', sess, '.mat'], 'data', '-v7.3')
         save([save_dir, subj, '/raw_pd_sess', sess, '.mat'], 'pd')
         save([save_dir, subj, '/header_sess', sess, '.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
     else
-        save([save_dir, subj, '/raw_data.mat'], 'data')
+        save([save_dir, subj, '/raw_data.mat'], 'data', '-v7.3')
         save([save_dir, subj, '/raw_pd.mat'], 'pd')
         save([save_dir, subj, '/header.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
     end

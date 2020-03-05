@@ -7,6 +7,7 @@ library(aplpack)
 library(lmerTest)
 library(RColorBrewer)
 library(wesanderson)
+library(nationalparkcolors)
 library(ez)
 library(plyr)
 setwd("/Users/stiso/Documents/Python/graphLearning/old_tasks/mTurk-10-node-breaks")
@@ -18,7 +19,7 @@ summary(df)
 
 ###########
 # Check accuracy across subjects
-acc = filter(df, nTries == 1, stage != 'demo') %>%
+acc = dplyr::filter(df, nTries == 1, stage != 'demo') %>%
   group_by(workerid) %>%
   dplyr::summarise(total_acc = table(correct)["True"]/10)
 p<-ggplot(acc, aes(x=total_acc)) + 
@@ -113,7 +114,7 @@ p<-ggplot(df_clean, aes(x=rt)) +
   geom_histogram(fill='pink', color='white')
 p
 ggsave(paste( '/data/preprocessed/images/rt', ext,'.png', sep = ''))
-# make rts inverse
+# make rts log
 df_clean$rt = log10(df_clean$rt)
 p<-ggplot(df_clean, aes(x=rt)) + 
   geom_histogram(fill='lightblue', color='white')
@@ -131,7 +132,6 @@ df_correct = subset(df_correct, select = -c(correct, nTries))
 df_acc = filter(df_clean, nTries == 1)
 df_acc$correct = as.factor(as.integer(df_acc$correct))
 
-df_modular = filter(df_correct, is_lattice == 0)
 df_modular_acc = filter(df_acc, is_lattice == 0)
 
 df_left = filter(df_modular, hand == 'left')
@@ -140,16 +140,55 @@ summary(df_correct)
 
 
 
+################################################
+# effect of lag 10
+################################################
+# helper function for reformatting recency
+stop_num = 10
+f = function(x) {
+  if (x > stop_num) {
+    y = stop_num
+  } else {
+    y = x
+  }
+  return(y)
+}
+nuissance_reg = lmer(data=df_correct, rt~scale(log10(cum_trial)) + scale(log10(trial)) + finger + hand + hand_transition + stage_num + 
+                       (1 + scale(log10(cum_trial))|workerid))
+recency_fact = lapply(df_correct$recency, f)
+df_correct$recency_fact = unlist(recency_fact)
+df_modular = filter(df_correct, is_lattice == 0)
+recency_data = data.frame( rt = resid(nuissance_reg), lag10 = df_correct$lag10, recency = df_correct$recency, graph = as.factor(df_correct$is_lattice), 
+                           subj = df_correct$workerid, recency_fact = (unlist(recency_fact)))
+p = ggplot(data=recency_data, aes(y=rt, x=recency_fact, color = graph)) + geom_jitter(alpha=0.3) + theme_minimal()
+p
+ggsave(paste( 'experiment/data/preprocessed/images/lag10_mTurk', ext,'.png', sep = ''))
+
+
+recency_avg <- recency_data %>%
+  group_by(subj, recency_fact,graph) %>%
+  dplyr::summarise(mean_rt = mean(rt)) 
+p = ggplot(data=recency_avg, aes(y=mean_rt, x=recency_fact, color = graph)) + geom_jitter(width=.3, alpha=0.5, size=3)  + theme_minimal()
+p #+ geom_line(aes(group=subj)) #+ theme(legend.position = "none")
+ggsave(paste( 'experiment/data/preprocessed/images/recency_avg.png', sep = ''))
+
+
+
+
 #################
 # LMER
 
 ### Learning
 # add *is lattice to trial if you have multiple graphs
-stat_learn = lmer(data=df_correct, rt~scale(log10(cum_trial)) + scale(log10(trial)) + finger + hand + hand_transition + stage_num + scale(lag10) + 
-                                        (1 + scale(log10(cum_trial)) + scale(lag10)|workerid))
+stat_learn = lmer(data=df_correct, rt~scale(log10(cum_trial)) + scale(log10(trial)) + finger + hand + hand_transition + stage_num + scale(log(recency_fact)) + 
+                                        (1 + scale(log10(cum_trial)) + scale(log(recency_fact))|workerid))
 anova(stat_learn)
 
 # save residuals
+# for later plotting
+df_modular$resid = resid(lmer(data=df_modular, rt~scale(log10(cum_trial)) + scale(log(recency_fact)) + finger + hand + hand_transition + stage_num + log10(recency) + 
+                                (1 + scale(log10(cum_trial)) + scale(log(recency_fact))|workerid)))
+# for max_ent analyses
 max_ent_data = select(df_correct, c('walk_id', 'workerid', 'trial', 'is_lattice'))
 max_ent_data$resid = resid(stat_learn)
 write.csv(max_ent_data, file = 'data/preprocessed/residuals.csv')
@@ -166,14 +205,14 @@ anova(stat_graph)
 ### Modular
 # change to df modular if multiple graphs
 # most basic
-stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
+stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + 
                         (1 + scale(log10(cum_trial))*is_crosscluster|workerid))
 anova(stat_surprisal1)
 summary(stat_surprisal1)
 
 # adding lag 10 - is it useful to include this with a random slope?
-stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
-                         (1 + scale(log10(cum_trial))*is_crosscluster + scale(lag10)|workerid))
+stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(log10(recency_fact)) + 
+                         (1 + scale(log10(cum_trial))*is_crosscluster + scale(log10(recency_fact))|workerid))
 anova(stat_surprisal2)
 summary(stat_surprisal2)
 
@@ -255,9 +294,9 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Finger') +
 ggsave(paste( 'data/preprocessed/images/rt_mTurk_finger.png', sep = ''))
 
 
-avg_cluster = df_correct %>%
+avg_cluster = df_modular %>%
   group_by(cum_trial, is_crosscluster) %>%
-  dplyr::summarise(mean_rt = mean(rt), sd_rt = sd(rt))
+  dplyr::summarise(mean_rt = mean(rt), sd_rt = sd(rt), mean_resid = mean(resid))
 avg_cluster$is_crosscluster = factor(avg_cluster$is_crosscluster,levels(avg_cluster$is_crosscluster)[c(2,1)])
 
 plot = ggplot(data=avg_cluster, aes(x=cum_trial, y=mean_rt, color=is_crosscluster))
@@ -308,7 +347,7 @@ ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_prob', ext,'.png', s
 
 
 #bin
-nbin = 75
+nbin = 50
 bin_data = data_frame(trial = tapply(avg_rt$cum_trial, cut(avg_rt$cum_trial, nbin), mean), mean_rt = tapply(avg_rt$mean_rt, cut(avg_rt$cum_trial, nbin), mean))
 
 plot = ggplot(data=bin_data, aes(x=trial, y=mean_rt))
@@ -329,13 +368,23 @@ bin_data_cluster = data_frame(trial = c(tapply(avg_cluster$cum_trial, cut(avg_cl
                               mean_rt = c(tapply(filter(avg_cluster, is_crosscluster == "False")$mean_rt, cut(filter(avg_cluster, is_crosscluster == "False")$cum_trial, nbin), mean), 
                                           tapply(filter(avg_cluster, is_crosscluster == "True")$mean_rt, cut(filter(avg_cluster, is_crosscluster == "True")$cum_trial, nbin), mean)),
                               is_crosscluster = c(rep("False", times = length(tapply(avg_cluster$cum_trial, cut(avg_cluster$cum_trial, nbin), mean))), 
-                                                  rep("True", times = length(tapply(avg_cluster$cum_trial, cut(avg_cluster$cum_trial, nbin), mean)))))
+                                                  rep("True", times = length(tapply(avg_cluster$cum_trial, cut(avg_cluster$cum_trial, nbin), mean)))),
+                              mean_resid = c(tapply(filter(avg_cluster, is_crosscluster == "False")$mean_resid, cut(filter(avg_cluster, is_crosscluster == "False")$cum_trial, nbin), mean), 
+                                             tapply(filter(avg_cluster, is_crosscluster == "True")$mean_resid, cut(filter(avg_cluster, is_crosscluster == "True")$cum_trial, nbin), mean)))
 
 
-plot = ggplot(data=bin_data_cluster, aes(x=trial, y=mean_rt, color = is_crosscluster))
-plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
+plot = ggplot(data=bin_data_cluster, aes(x=trial, y=mean_resid, color = is_crosscluster))
+plot + geom_line(size=1) + ggtitle('RT over time, by transition') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(215/255,190/255,123/255), rgb(33/255,67/255,104/255))) 
-  ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_bin_cc', ext,'.pdf', sep = ''))
+  ggsave(paste( 'experiment/data/preprocessed/images/resid_mTurk_bin_cc', ext,'.pdf', sep = ''))
+  
+
+# plot difference over time    
+surprisal = data.frame( resid = unlist(bin_data_cluster[bin_data_cluster$"is_crosscluster" == "True",4] - bin_data_cluster[bin_data_cluster$"is_crosscluster" == "False",4]),
+                       trials = unlist(bin_data_cluster[bin_data_cluster$"is_crosscluster" == "True",1]))
+p = ggplot(data=surprisal, aes(x=trials, y=resid))
+p + geom_line() + theme_minimal()
+ggsave(paste( 'experiment/data/preprocessed/images/diff_resid', ext,'.png', sep = ''))
 
 
 # probability

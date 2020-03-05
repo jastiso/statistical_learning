@@ -59,5 +59,7 @@ write_bv_node( node_file, x, y, z, c, s, labels);
 
 %% Make Plot
 
-BrainNet_MapCfg('BrainMesh_ICBM152_smoothed.nv',[r_dir, 'theta_node', ext,'.node'],'Cfg.mat');
+BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
+    [r_dir, 'theta_node', ext,'.node'],[r_dir, 'theta_inferno.mat'], ...
+    '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/theta_all.jpg');
 

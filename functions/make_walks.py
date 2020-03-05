@@ -1,7 +1,7 @@
 import random
 import networkx as nx
 import numpy as np
-from utilities import graphs
+#from utilities import graphs
 import matplotlib.pyplot as plt
 
 random.seed()
@@ -72,6 +72,18 @@ def random_walk(G, n):
         node = random.choice(list(G[node].keys()))
         walk.append(node)
     return walk
+
+def random_walk_wei(G, n):
+    node = random.choice(list(G.nodes()))
+    walk = [node]
+    for i in range(n - 1):
+        edges = list(G.edges(node, data='weight'))
+        node_opt = [e[1] for e in edges]
+        weight_opt = [e[2] for e in edges]
+        node = np.random.choice(node_opt,p=weight_opt)
+        walk.append(node)
+    return walk
+
 
 def hamiltonian_walk(n):
     """

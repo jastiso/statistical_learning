@@ -10,7 +10,7 @@ library(wesanderson)
 library(ez)
 library(plyr)
 library(lm.beta)
-setwd("/Users/stiso/Documents/Python/graphLearning/ECoG data/")
+setwd("/Users/stiso/Documents/Code/graph_learning/ECoG_data/")
 
 df = read.csv('behavior_preprocessed/group_behavior.csv')
 summary(df)
@@ -33,13 +33,13 @@ for (var in cat_vars){
 p<-ggplot(df_clean, aes(x=rt_raw)) + 
   geom_histogram(fill='pink', color='white')
 p
-ggsave(paste( 'data/preprocessed/images/rt_ecog.png', sep = ''))
+ggsave(paste( 'behavior_preprocessed/images/rt_ecog.png', sep = ''))
 # make rts inverse
 df_clean$rt = log10(df_clean$rt_raw)
 p<-ggplot(df_clean, aes(x=rt)) + 
   geom_histogram(fill='lightblue', color='white')
 p
-ggsave(paste( 'data/preprocessed/images/rt_log_ecog.png', sep = ''))
+ggsave(paste( 'behavior_preprocessed/images/rt_log_ecog.png', sep = ''))
 
 summary(df_clean)
 
@@ -68,6 +68,19 @@ for (t in 1:length(finger)){
 }
 df_correct$finger = as.factor(finger)
 
+# get recency as a factor
+stop_num = 10
+f = function(x) {
+  if (x > stop_num) {
+    y = stop_num
+  } else {
+    y = x
+  }
+  return(y)
+}
+recency_fact = lapply(df_correct$recency, f)
+df_correct$recency_fact = unlist(recency_fact)
+
 df_modular = dplyr::filter(df_correct, graph == "modular")
 
 save(df_correct, file = 'behavior_preprocessed/clean.RData')
@@ -78,27 +91,29 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 # LMER
 
 ## learn
-stat_learn = lmer(data=df_correct, rt~scale(log10(order)) * graph + finger + hand_transition + block + scale(lag10) + sess + (1 + scale(log10(order))|subj))
+stat_learn = lmer(data=df_modular, rt~scale(log10(order)) + finger + hand_transition + block + scale(log(recency_fact)) + sess + (1 + scale(log10(order)) + scale(log(recency_fact)) |subj))
 anova(stat_learn)
 
 # save residuals
-df_correct$resid = resid(stat_learn)
-write.csv(df_correct, file = 'behavior_preprocessed/residuals.csv')
+df_modular$resid = resid(stat_learn)
+write.csv(df_modular, file = 'behavior_preprocessed/residuals.csv')
 
 
 ## graph
-stat_graph = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + hand_transition +  block + scale(lag10) + sess + (1 + scale(log10(order))*graph|subj))
+stat_graph = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + hand_transition +  block + scale(log(recency_fact)) + sess + (1 + scale(log10(order))*graph|subj))
 anova(stat_graph)
 
 
 ### surprisal
-stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + 
+stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(log(recency_fact)) + sess + 
                          (1 + scale(log10(order))*transition |subj))
-anova(stat_surprisal1)
-summary(stat_surprisal1)
 
-stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(lag10) + sess + 
-                         (1 + scale(log10(order))*transition + scale(lag10) |subj))
+
+stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(log(recency_fact)) + sess + 
+                         (1 + scale(log10(order))*transition + scale(log(recency_fact)) |subj))
+# chi sq
+anova(stat_surprisal2, stat_surprisal1, test="Chisq")
+
 anova(stat_surprisal2)
 summary(stat_surprisal2)
 
@@ -109,16 +124,14 @@ for (i in seq(1,nSim)){
   
 }
 
-# chi sq
-anova(stat_surprisal2, stat_surprisal1, test="Chisq")
 
 # no pooling
-stat_no_pool = lm.beta(lm(data=df_modular, rt~scale(order)*transition + finger + hand_transition +  block + scale(lag10) +sess +  subj))
+stat_no_pool = lm.beta(lm(data=df_modular, rt~scale(order)*transition + finger + hand_transition +  block + scale(log(recency_fact)) +sess +  subj))
 anova(stat_no_pool)
 summary(stat_no_pool)
 
 # full pooling
-stat_pool = lm.beta(lm(data=filter(df_modular, subj == '6'), rt~scale(order)*transition + finger + hand_transition +  block + scale(lag10) + sess ))
+stat_pool = lm.beta(lm(data=filter(df_modular, subj == '10'), rt~scale(order)*transition + finger + hand_transition +  block + scale(log(recency_fact)) + sess ))
 anova(stat_pool)
 summary(stat_pool)
 
@@ -141,7 +154,6 @@ ggsave(paste( 'behavior_preprocessed/images/rt_mTurk.png', sep = ''))
 avg_cluster = filter(df_modular, sess == '1') %>%
   group_by(order, transition) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
-avg_cluster$transition = factor(avg_cluster$transition,levels(avg_cluster$transition)[c(2,3)])
 
 plot = ggplot(data=avg_cluster, aes(x=order, y=mean_rt, color=transition))
 plot + geom_line(size=1) + ggtitle('RT over time, by Transition') +

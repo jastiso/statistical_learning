@@ -4,13 +4,13 @@ clear
 addpath(genpath('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/'))
 addpath(genpath('/Users/stiso/Documents/MATLAB/Colormaps/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
-subjs = [{'2'},{'4'}];
+subjs = [{'2'},{'4'},{'6'}];
 
 % define variables
-save_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_raw/';
-r_dir = '/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/';
+save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
+r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 
-ext = '_hg_osc';
+ext = '';
 
 % initialize
 x_ramp = [];
@@ -87,21 +87,24 @@ y_ramp = [y_ramp; coords.Var3(ramp_coord_idx)];
 z_ramp = [z_ramp; coords.Var4(ramp_coord_idx)];
 c_ramp = [c_ramp; ramp.betas];
 s_ramp = [s_ramp; -log10(ramp.p)];
-labels_ramp = vertcat(labels_ramp, ramp.region);
+curr_regions = cellfun(@(x) strsplit(x), ramp.region, 'UniformOutput', false);
+labels_ramp = vertcat(labels_ramp, cellfun(@(x) x{2}, curr_regions, 'UniformOutput', false));
 
 x_mod = [x_mod; coords.Var2(mod_coord_idx)];
 y_mod = [y_mod; coords.Var3(mod_coord_idx)];
 z_mod = [z_mod; coords.Var4(mod_coord_idx)];
 c_mod = [c_mod; mod.betas];
 s_mod = [s_mod; -log10(mod.p)];
-labels_mod = vertcat(labels_mod, mod.region);
+curr_regions = cellfun(@(x) strsplit(x), mod.region, 'UniformOutput', false);
+labels_mod = vertcat(labels_mod, cellfun(@(x) x{2}, curr_regions, 'UniformOutput', false));
 
 x_max_ent = [x_max_ent; coords.Var2(max_ent_coord_idx)];
 y_max_ent = [y_max_ent; coords.Var3(max_ent_coord_idx)];
 z_max_ent = [z_max_ent; coords.Var4(max_ent_coord_idx)];
 c_max_ent = [c_max_ent; max_ent.betas];
 s_max_ent = [s_max_ent; -log10(max_ent.p)];
-labels_max_ent = vertcat(labels_max_ent, max_ent.region);
+curr_regions = cellfun(@(x) strsplit(x), max_ent.region, 'UniformOutput', false);
+labels_max_ent = vertcat(labels_max_ent, cellfun(@(x) x{2}, curr_regions, 'UniformOutput', false));
 
 end
 
@@ -114,3 +117,12 @@ write_bv_node( mod_file, x_mod, y_mod, z_mod, c_mod, s_mod, labels_mod);
 
 max_ent_file = [r_dir, 'max_ent_node', ext, '.node'];
 write_bv_node( max_ent_file, x_max_ent, y_max_ent, z_max_ent, c_max_ent, s_max_ent, labels_max_ent);
+
+%% Make Plot
+
+cont = 'ramp';
+
+BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
+    [r_dir, cont, '_node', ext,'.node'],[r_dir, 'label_contrast.mat'], ...
+    ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/', cont, ext, '.jpg']);
+

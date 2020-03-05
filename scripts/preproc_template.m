@@ -11,12 +11,12 @@ subj = '6';
 sessions = [{'1'}, {'2'}];
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 
-% get AAL regions
-load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/AAL_regions_by_subject.mat')
-AAL_all = data_all;
-eval(['AAL = AAL_all.RID', RID, ';']);
+% get regions regions
+regions = readtable(['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/', subj, '/RID', RID, '/electrodenames_coordinates_native_and_T1.csv']);
+regions = regions(:,1:2); % get only names and labels
 
 load([save_dir, subj, '/header_sess1.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj') % these should be the same
+save([save_dir, subj, '/header_sess1.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj', 'regions') % these should be the same
 data_all = struct('sess', []);
 for i = 1:numel(sessions)
     data_all(i).sess = load([save_dir, subj, '/raw_data_sess', sessions{i}, '.mat'], 'data');
@@ -27,8 +27,14 @@ end
 
 %% Remove noisy elecs
 
-% sidebar: align the AAL names
-[unaligned_elecs] = AAL_match(elec_labels)
+% sidebar: align the region names
+[regions] = region_match(elec_labels, regions);
+
+% remove elecs that are out of the brain
+out_of_brain = cellfun(@(x) isempty(x), regions);
+data = data(~out_of_brain, :);
+regions = regions(~out_of_brain);
+elec_labels = elec_labels(~out_of_brain);
 
 %data-driven: find channels with large kurtosis
 rmv = false(numel(elec_labels,1));
@@ -44,7 +50,7 @@ for i = 1:numel(sessions)
     data_all(i).sess = data_all(i).sess(~rmv,:);
 end
 elec_labels = elec_labels(~rmv,:);
-AAL = AAL(~rmv, :);
+regions = regions(~rmv, :);
 
 %% Look at line noise
 % check for things outside of 60Hz...especially in theta/alpha range
@@ -82,7 +88,7 @@ for s = 1:numel(sessions)
     [out,MARKER] = spike_detector_hilbert_v16_byISARG(data_all(s).sess', srate);
     
     % select for only spikes in many channels
-    win = 0.2;
+    win = 0.05;
     min_chan = 4;
     nSamp = size(MARKER.d,1);
     nSpike = numel(out.pos);
@@ -136,7 +142,7 @@ eegplot(marker_all(1).sess.m_clean', 'srate', MARKER.fs)
 
 
 save([save_dir, subj, '/data_clean.mat'], 'data_all')
-save([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj', 'AAL', 'sessions')
+save([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj', 'regions', 'sessions')
 
 %% Get extra event fields
 
@@ -152,7 +158,6 @@ module1 = [5 6 7 8 9];
 
 %get only good trials
 good_trials = logical(correct) & cutoff;
-good_trials(1:514) = []; % for this subject, the first 500 events the photodiode was not working, we need to do this to line them up
 good_events = events(good_trials,:);
 
 trans_idx = false(nTrial,1);

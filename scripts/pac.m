@@ -10,7 +10,7 @@ addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(genpath('/Users/stiso/Documents/Code/graph_learning/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
-subj = '2';
+subj = '4';
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 img_dir = ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj];
@@ -22,7 +22,7 @@ end
 
 % load stuff
 load([save_dir, subj, '/ft_data.mat'])
-load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj', 'AAL')
+load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj', 'regions')
 load([save_dir, subj, '/events.mat']) % in samples
 load([save_dir, subj, '/task_data.mat'])
 load([save_dir, subj, '/good_events.mat'])
@@ -42,7 +42,7 @@ lf_width = 2;
 % only elecs with signigifant peak
 peak_elec_labels = elec_labels(logical(ps),:);
 peaks = peaks((logical(ps)));
-AAL = AAL(logical(ps),:);
+%regions = regions(logical(ps),:);
 nPeakElec = size(peak_elec_labels,1);
 
 %% Get phase at peak index
@@ -80,28 +80,28 @@ end
 
 % get one for each elec
 amp = cell(nElec,1);
-for i = 1:numel(peak_elec_labels)
-    
-    cfg = [];
-    cfg.bpfilter = 'yes';
-    cfg.channel = peak_elec_labels{i};
-    cfg.bpfreq = [70, 150]; % needs to be have a width around center frquency greater than twice the modulating low frequency (Aru et al 2019)
-    cfg.bpfiltdf = 0.5; % bandpass transition width
-    cfg.bsfiltdf = 0.5; % bandstop transition width
-    cfg.bpfiltdev = 0.01; % bandpass max passband deviation
-    cfg.bsfiltdev = 0.05; % bandstp max passband deviation
-    cfg.bpfilttype = 'firws'; % or 'firls' (slower), but avoid the default 'but' (= not well-suited for hilbert phase estimate)
-    cfg.hilbert = 'complex';
-    
-    curr_amp = ft_preprocessing(cfg, ft_data);
-    
-    % get amp envelope
+
+cfg = [];
+cfg.bpfilter = 'yes';
+cfg.channel = elec_labels;
+cfg.bpfreq = [70, 150]; % needs to be have a width around center frquency greater than twice the modulating low frequency (Aru et al 2019)
+cfg.bpfiltdf = 0.5; % bandpass transition width
+cfg.bsfiltdf = 0.5; % bandstop transition width
+cfg.bpfiltdev = 0.01; % bandpass max passband deviation
+cfg.bsfiltdev = 0.05; % bandstp max passband deviation
+cfg.bpfilttype = 'firws'; % or 'firls' (slower), but avoid the default 'but' (= not well-suited for hilbert phase estimate)
+cfg.hilbert = 'complex';
+
+pow = ft_preprocessing(cfg, ft_data);
+
+% get amp envelope
+for i = 1:nElec
     for t = 1:nGoodTrial
-        curr_amp.trial{t} = abs(curr_amp.trial{t});
+        amp{i}.trial{t} = abs(pow.trial{t}(i,:));
     end
-    
-    amp{i} = curr_amp;
 end
+
+
 
 %% bin phases
 
@@ -114,18 +114,21 @@ indices = cell(nPeakElec, 1);
 angles = linspace(-pi, pi, 100);
 [~,edges] = discretize(angles, nBin);
 
-for i = 1:nPeakElec
-    % vectorize
-    phase_vect = cell2mat(phase{i}.trial);
-    amp_vect = cell2mat(amp{i}.trial);
-    
-    % get indices for bins
-    ind = discretize(phase_vect,edges);
-    indices{i} = ind;
-    
-    % avg amp over bins
-    binned_amp(:,i) = accumarray(ind', amp_vect, [nBin, 1], @mean);
-    
+cnt = 0;
+for i = 1:nElec
+    if ps(i) % if theres an oscillation
+        cnt = cnt + 1;
+        % vectorize
+        phase_vect = cell2mat(phase{cnt}.trial);
+        amp_vect = cell2mat(amp{i}.trial);
+        
+        % get indices for bins
+        ind = discretize(phase_vect,edges);
+        indices{cnt} = ind;
+        
+        % avg amp over bins
+        binned_amp(:,cnt) = accumarray(ind', amp_vect, [nBin, 1], @mean);
+    end
 end
 
 % normalize over all bins
@@ -134,7 +137,7 @@ binned_amp = binned_amp./sum(binned_amp,1);
 % plot histogram
 for i = 1:nPeakElec
     bar(edges(1:end-1), binned_amp(:,i), 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8)
-    title(['PAC ', AAL{i,1}])
+    title(['PAC ', regions{i}])
     saveas(gca, [img_dir, '/PAC_', peak_elec_labels{i}, '.png'], 'png')
 end
 
@@ -172,10 +175,10 @@ for i = 1:sum(sig_contrast)
         mi_surr(:,i) = mod_index(squeeze(surrogate_dist(i, :, :))', uni_dist);
         
         % plot
-        figure(i); clf
+        figure(1); clf
         histogram(mi_surr(:,i), 'Normalization', 'probability', 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8); hold on
         plot([mod_idx(elec_idx), mod_idx(elec_idx)], [0, .3], 'red', 'linewidth', 3)
-        title(['MI vs Surrogate ', AAL{elec_idx,1}])
+        title(['MI vs Surrogate ', regions{elec_idx,1}])
         saveas(gca, [img_dir, '/PAC_surr_', peak_elec_labels{elec_idx}, '.png'], 'png')
     end
 end
@@ -191,14 +194,14 @@ for i = 1:sum(sig_contrast)
 end
 
 
-%% Test for coupleing to the hippocampus from other regions
+%% Test for coupling to the hippocampus from other regions
 
-reg = readtable([r_dir, 'subj' subj, '/max_ent_stats.csv']);
+reg = readtable([r_dir, 'subj' subj, '/max_ent_stats_hg.csv']);
 sig_contrast = reg.p < 0.05;
 sig_elecs = reg.elecs(reg.p < 0.05);
 sig_regions = reg.region(sig_contrast);
 
-hpc_idx = cellfun(@(x) contains(x, 'hippocamp', 'IgnoreCase', true), AAL(:,1));
+hpc_idx = cellfun(@(x) contains(x, 'hippocamp', 'IgnoreCase', true), regions);
 hpc_phase = indices(hpc_idx);
 
 binned_amp_hpc = zeros(nBin,sum(sig_contrast),sum(hpc_idx));
@@ -248,13 +251,13 @@ for i = 1:sum(sig_contrast)
         
         % amplitudes
         amp_vect = cell2mat(amp{elec_idx}.trial);
-
+        
         surrogate_dist_hpc(i, j, :, :) = pac_surr_cut(nSim, min_cut, phase{curr_hpc}.trial, amp_vect, nBin, edges);
         
         mi_surr_hpc(:,i,j) = mod_index(squeeze(surrogate_dist_hpc(i, j, :, :))', uni_dist);
         
         % plot
-        figure(i); clf
+        figure(1); clf
         histogram(mi_surr_hpc(:,i,j), 'Normalization', 'probability', 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8); hold on
         plot([mi_hpc(i, j), mi_hpc(i, j)], [0, .3], 'red', 'linewidth', 3)
         title(['MI vs Surrogate ', sig_regions{i}])
@@ -265,12 +268,12 @@ end
 for i = 1:sum(sig_contrast)
     elec_idx = find(strcmpi(elec_labels, sig_elecs{i}));
     
-    for j = 1:sum(hpc_idx)        
+    for j = 1:sum(hpc_idx)
         % z-score
-            fprintf('\nFor electrode %s with %s, z = %d\n', elec_labels{elec_idx},...
-                peak_elec_labels{hpc(j)}, round((mi_hpc(i, j) - mean(mi_surr_hpc(:,i,j)))/std(mi_surr_hpc(:,i,j)),2));
+        fprintf('\nFor electrode %s with %s, z = %d\n', elec_labels{elec_idx},...
+            peak_elec_labels{hpc(j)}, round((mi_hpc(i, j) - mean(mi_surr_hpc(:,i,j)))/std(mi_surr_hpc(:,i,j)),2));
         % show peak phase
-        [~,ind] = max(binned_amp(:,elec_idx));
+        [~,ind] = max(binned_amp_hpc(:,i,j));
         fprintf('The peak of the bined amplitudes is at %d pi \n', edges(ind)./pi)
     end
 end

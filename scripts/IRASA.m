@@ -9,7 +9,7 @@ addpath(genpath('/Users/stiso/Documents/MATLAB/eeglab_current/'))
 removepath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/')) % this hides the built in "hann" function
 
 % define variables
-subj = '4';
+subj = '10';
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 img_dir = ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj];
@@ -21,10 +21,10 @@ end
 
 % load stuff
 load([save_dir, subj, '/data_clean.mat'])
-load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj', 'AAL', 'sessions')
+load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj', 'regions', 'sessions')
 load([save_dir, subj, '/events.mat'])
 %load([save_dir, subj, '/trans_idx.mat'])
-if numel(sessions) > 1
+if exist('data_all','var')
     data = data_all;
 else
     tmp = data;
@@ -78,7 +78,7 @@ for s = 1:numel(sessions)
         subplot(2,1,1);
         loglog(spec{j}.freq,mean(spec{j}.mixd,2),'b',  'linewidth', 2); hold on
         loglog(spec{j}.freq,mean(spec{j}.frac,2),'r', 'linewidth', 2);
-        %title(AAL{j});
+        title(regions{j});
         subplot(2,1,2);
         plot(spec{j}.freq, mean(spec{j}.osci,2), 'linewidth', 2); hold on
         shade_plot(spec{j}.freq', mean(spec{j}.osci,2)', (std(spec{j}.osci,[],2))', rgb("slategrey"), 0.4);
@@ -98,11 +98,11 @@ filter = 0; % with ot without lowpass alaising filter
 
 spec_nf = cell(nElec,nSess); % initialize
 for s = 1:nSess
-for j = 1:nElec
-    fprintf('Elec %s...\n', elec_labels{j})
-    spec_nf{j,s} = get_IRASA_spec(data(s).sess(j,:), exp_st, exp_en, srate, win_length, step, filter);
-    
-end
+    for j = 1:nElec
+        fprintf('Elec %s...\n', elec_labels{j})
+        spec_nf{j,s} = get_IRASA_spec(data(s).sess(j,:), exp_st(s), exp_en(s), srate, win_length, step, filter);
+        
+    end
 end
 save([r_dir, 'subj', subj, '/IRASA_no_filter.mat'], 'spec_nf')
 
@@ -195,7 +195,7 @@ for i = 1:numel(wins)
     step = win_length/2;
     for j = 1:nElec
         fprintf('Elec %s...\n', elec_labels{j})
-        curr = get_IRASA_spec(data(s).sess(j,:), exp_st, exp_en, srate, win_length, step, filter);
+        curr = get_IRASA_spec(data(s).sess(j,:), exp_st(s), exp_en(s), srate, win_length, step, filter);
         
         % get relevant stats, to see which is changing
         theta_idx = curr.freq >= theta(1) & curr.freq <= theta(2);

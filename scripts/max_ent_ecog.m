@@ -16,7 +16,7 @@ data = readtable([save_dir, 'residuals.csv']);
 
 %% Get model
 
-subjs = [{'2'}, {'4'}, {'6'}];
+subjs = [{'2'}, {'4'}, {'6'}, {'10'}];
 nSubj = numel(subjs);
 nNode = 10;
 beta = zeros(nSubj,1);
@@ -33,11 +33,12 @@ A = [0 1 1 1 0 0 0 0 0 1;
     0 0 0 0 0 1 0 1 1 1;
     0 0 0 0 0 1 1 0 1 1;
     0 0 0 0 0 1 1 1 0 1
-    1 0 0 0 0 0 1 1 1 0];
+    1 0 0 0 0 0 1 1 1 0].*0.25;
 A_hat = zeros(nSubj, nNode, nNode);
 
 for s = 1:nSubj
     % select subject
+    fprintf('\n************** Subj %s ************\n', subjs{s});
     curr = data(strcmpi(data.subj,subjs{s}),:);
     
     rt = curr.resid;
@@ -61,7 +62,7 @@ save([save_dir, 'max_ent.mat'], 'beta', 'r0', 'r1', 'E', 'diff', 'A_hat')
 %% plot
 
 figure(1); clf
-histogram(log10(beta), 'facecolor', rgb('steelblue'), 'facealpha', 0.6, 'edgecolor', 'white')
+histogram((beta), 30, 'facecolor', rgb('steelblue'), 'facealpha', 0.6, 'edgecolor', 'white')
 xlabel('log( beta )')
 ylabel('Count')
 saveas(gca, [img_dir, 'ecog_betas.png'], 'png')

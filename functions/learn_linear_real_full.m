@@ -26,6 +26,7 @@ function [beta, r0, r1, E, diff] = learn_linear_real_full(S, rt, trials)
 % Other model parameters:
 alpha = 1; % Ignore this parameter
 diffThreshold = 10^(-6); % Precision with which we learn beta parameter
+max_iter = 5000;
 
 % Initialize beta parameter:
 beta = learn_linear_search_func(S, rt, trials);
@@ -42,7 +43,7 @@ elseif abs(beta) < .01
 elseif abs(beta) < .05
     stepSize = .0005;
 elseif abs(beta) < .1
-    stepSize = .001;
+    stepSize = .05;
 elseif abs(beta) < .5
     stepSize = .05;
 elseif abs(beta) < 1
@@ -55,7 +56,7 @@ else
     stepSize = 100000;
 end
 
-stepSize = stepSize*10; % Do this if algorithm converges too slowly
+stepSize = stepSize*15; % Do this if algorithm converges too slowly
 % stepSize = stepSize/10; % Do this if algorithm fluctuates wildly
 
 % Trials to include in parameter estimation:
@@ -86,7 +87,7 @@ t = 1;
 
 % Only allow up to 400 gradient steps, but make sure there are at least 10
 % gradient descent steps
-while t < 400 && (t < 10 || diff > diffThreshold)
+while t < max_iter && (t < 10 || diff > diffThreshold)
     
     % Make parameter step:
     db_old = db_new;
@@ -119,7 +120,7 @@ while t < 400 && (t < 10 || diff > diffThreshold)
     t = t + 1;
     fprintf('Current step: %d, beta = %d, dE/db = %d\n', t, beta, dEdb)
     
-    if t == 400
+    if t == max_iter
         warning('This subject reached the maximum number of steps! You might want to increase your step size')
     end
     

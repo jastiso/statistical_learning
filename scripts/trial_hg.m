@@ -4,7 +4,7 @@ clear
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
-subj = '2';
+subj = '10';
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 img_dir = ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj];
@@ -16,7 +16,7 @@ end
 
 % load stuff
 load([save_dir, subj, '/ft_data.mat'])
-load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj', 'AAL')
+load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj', 'regions')
 load([save_dir, subj, '/events.mat']) % in samples
 load([save_dir, subj, '/task_data.mat'])
 load([save_dir, subj, '/good_events.mat'])
@@ -72,7 +72,7 @@ end
 
 
 %things for r
-region = AAL(:,1);
+region = regions(:,1);
 good_trial_idx = trial(good_trials);
 
 % get data for python anaylsis
@@ -104,7 +104,7 @@ for i = 1:nElec
     %plot
     figure(3); clf
     imagesc(power_node(:,:,i)); c = colorbar;
-    title(AAL{i})
+    title(regions{i})
     xlabel('current node')
     ylabel('previous node')
     c.Label.String = 'power';

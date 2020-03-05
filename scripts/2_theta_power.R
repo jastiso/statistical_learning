@@ -11,12 +11,12 @@ library(R.matlab)
 library(ez)
 library(plyr)
 library(lm.beta)
-setwd("/Users/stiso/Documents/Python/graphLearning/ECoG data/")
+setwd("/Users/stiso/Documents/Code/graph_learning/ECoG_data/")
 
-s = 2
+s = 10
 load('behavior_preprocessed/clean.RData')
-data = readMat(paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/peak_power.mat',sep=""))
-max_ent = readMat(paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/max_ent_contrast.mat',sep=""))
+data = readMat(paste('/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/subj',s,'/peak_power.mat',sep=""))
+max_ent = readMat(paste('/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/subj',s,'/max_ent_contrast.mat',sep=""))
 
 # format 
 df_subj = dplyr::filter(df_correct, subj == s)
@@ -24,7 +24,8 @@ elecs = unlist(data$elec.labels)
 regions = unlist(data$region)
 
 # get only elecs in grey matter
-elecs = elecs[unlist(lapply(regions, function(x) x != "No_label"))]
+elecs = elecs[!grepl("White Matter", regions)]
+regions = regions[!grepl("White Matter", regions)]
 
 df_pow <- data.frame(matrix(ncol = length(elecs) + 3, nrow = length(t(data$good.trial.idx))))
 nam <- c("order", "mod", "max_ent", elecs)
@@ -50,7 +51,7 @@ models = list()
 ps = list()
 betas = list()
 for (e in elecs){
-  formula = paste(e, '~ transition + order + finger + hand + hand_transition')
+  formula = paste(e, '~ transition + order + finger + hand + hand_transition + log(recency_fact) + block + rt')
   fit = lm(data=df_fit, formula)
   anova(fit)
   ps[[e]] = (anova(fit)$`Pr(>F)`[1])
@@ -64,14 +65,14 @@ print(paste("Electrode with statistically significant module contrast: ", unlist
 # save file
 mod_stats = data.frame(elecs = elecs, p = p.adjust(ps, n=length(elecs), method="fdr"), betas = unlist(betas), 
                        region = regions[unlist(lapply(regions, function(x) x != "No_label"))])
-write.csv(mod_stats, paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/mod_stats.csv', sep=""))
+write.csv(mod_stats, paste('/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/subj',s,'/mod_stats.csv', sep=""))
 
 # repeat for ramping contrast
 models_ramp = list()
 ps_ramp = list()
 betas_ramp = list()
 for (e in elecs){
-  formula = paste(e, '~ mod + order + finger + hand + hand_transition')
+  formula = paste(e, '~ mod + order + finger + hand + hand_transition + log(recency_fact) + block + rt')
   fit = lm(data=df_fit, formula)
   anova(fit)
   ps_ramp[[e]] = (anova(fit)$`Pr(>F)`[1])
@@ -85,7 +86,7 @@ print(paste("Electrode with statistically significant ramping contrast: ", unlis
 # save file
 ramp_stats = data.frame(elecs = elecs, p = p.adjust(ps_ramp, n=length(elecs), method="fdr"), betas = unlist(betas_ramp), 
                         region = regions[unlist(lapply(regions, function(x) x != "No_label"))])
-write.csv(ramp_stats, paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/ramp_stats.csv', sep=""))
+write.csv(ramp_stats, paste('/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/subj',s,'/ramp_stats.csv', sep=""))
 
 
 
@@ -108,4 +109,5 @@ print(paste("Electrode with statistically significant max_ent contrast: ", unlis
 # save file
 max_ent_stats = data.frame(elecs = elecs, p = p.adjust(ps_max_ent, n=length(elecs), method="fdr"), betas = unlist(betas_max_ent), 
                         region = regions[unlist(lapply(regions, function(x) x != "No_label"))])
-write.csv(max_ent_stats, paste('/Users/stiso/Documents/Python/graphLearning/ECoG data/ephys_analysis/subj',s,'/max_ent_stats.csv', sep=""))
+write.csv(max_ent_stats, paste('/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/subj',s,'/max_ent_stats.csv', sep=""))
+

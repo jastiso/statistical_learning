@@ -13,7 +13,7 @@ library(plyr)
 library(lm.beta)
 setwd("/Users/stiso/Documents/Code/graph_learning/ECoG_data/")
 
-s = 2
+s = 10
 load('behavior_preprocessed/clean.RData')
 data = readMat(paste('ephys_analysis/subj',s,'/hg_power.mat',sep=""))
 theta = readMat(paste('ephys_analysis/subj',s,'/theta_peaks.mat',sep=""))
@@ -29,11 +29,11 @@ elecs_osc = elecs[as.logical(theta$ps)]
 regions_osc = regions[as.logical(theta$ps)]
 
 # get only elecs in grey matter
-elecs_osc = elecs_osc[unlist(lapply(regions_osc, function(x) x != "No_label"))]
-regions_osc = regions_osc[unlist(lapply(regions_osc, function(x) x != "No_label"))]
+elecs_osc = elecs_osc[!grepl("White Matter", regions_osc)]
+regions_osc = regions_osc[!grepl("White Matter", regions_osc)]
 
 # split by temporal lobe
-temporal = paste(c('temporal', 'heschl', 'fusiform', 'hippocampus', 'amygdala'), collapse = "|")
+temporal = paste(c('temporal', 'hippo', 'lat vent', 'caudate'), collapse = "|")
 elecs_osc = elecs[unlist(lapply(regions, function(x) any(grepl(temporal, x, ignore.case=TRUE)))) ]
 regions_osc = regions[unlist(lapply(regions, function(x) any(grepl(temporal, x, ignore.case=TRUE))))]
 
@@ -42,8 +42,8 @@ regions_osc = regions[unlist(lapply(regions, function(x) any(grepl(temporal, x, 
 elecs_other = elecs[unlist(lapply(elecs, function(x) !any(grepl(x,elecs_osc))))]
 regions_other = regions[unlist(lapply(elecs, function(x) !any(grepl(x,elecs_osc))))]
 # removw white matter
-elecs_other = elecs_other[unlist(lapply(regions_other, function(x) x != "No_label"))]
-regions_other = regions_other[unlist(lapply(regions_other, function(x) x != "No_label"))]
+elecs_other = elecs_other[!grepl("White Matter", regions_other)]
+regions_other = regions_other[!grepl("White Matter", regions_other)]
 
 df_pow <- data.frame(matrix(ncol = length(elecs) + 3, nrow = length(t(data$good.trial.idx))))
 nam <- c("order", "mod", "max_ent", elecs)
@@ -78,7 +78,7 @@ ext = '_hg_osc'
 ##################
 elec_group = elecs_other
 region_group = regions_other
-ext = ''
+ext = '_hg'
 
 
 ##### Stats #################################
@@ -87,7 +87,7 @@ models = list()
 ps = list()
 betas = list()
 for (e in elec_group){
-  formula = paste(e, '~ transition + order + finger + hand + hand_transition')
+  formula = paste(e, '~ transition + order + finger + hand + hand_transition + log(recency_fact) + block + rt')
   fit = lm(data=df_fit, formula)
   anova(fit)
   ps[[e]] = (anova(fit)$`Pr(>F)`[1])
@@ -108,7 +108,7 @@ models_ramp = list()
 ps_ramp = list()
 betas_ramp = list()
 for (e in elec_group){
-  formula = paste(e, '~ mod + order + finger + hand + hand_transition')
+  formula = paste(e, '~ mod + order + finger + hand + hand_transition + log(recency_fact) + block + rt')
   fit = lm(data=df_fit, formula)
   anova(fit)
   ps_ramp[[e]] = (anova(fit)$`Pr(>F)`[1])
@@ -130,7 +130,7 @@ models_max_ent = list()
 ps_max_ent = list()
 betas_max_ent = list()
 for (e in elec_group){
-  formula = paste(e, '~ max_ent + order + finger + hand + hand_transition')
+  formula = paste(e, '~ max_ent + order + finger + hand + hand_transition + log(recency_fact) + block + rt')
   fit = lm(data=df_fit, formula)
   anova(fit)
   ps_max_ent[[e]] = (anova(fit)$`Pr(>F)`[1])
@@ -145,5 +145,4 @@ print(paste("Electrode with statistically significant max ent contrast: ", unlis
 max_ent_stats = data.frame(elecs = elec_group, p = p.adjust(ps_max_ent, n=length(elec_group), method="fdr"), betas = unlist(betas_max_ent), 
                         region = region_group)
 write.csv(max_ent_stats, paste('ephys_analysis/subj',s,'/max_ent_stats', ext, '.csv', sep=""))
-
 
