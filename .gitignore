@@ -178,3 +178,4 @@ vignettes/*.pdf
 *.wav
 *.txt
 *.mp3
+./ECoG_data/*
