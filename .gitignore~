@@ -1,3 +1,6 @@
+# random stuff
+forVivek/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -171,3 +174,11 @@ vignettes/*.pdf
 *.pdf
 *.png
 *.jpg
+*.avi
+*.zip
+*.nii.gz
+*/ephys_raw/*RID*
+*.wav
+*.txt
+*.mp3
+./ECoG_data/*
