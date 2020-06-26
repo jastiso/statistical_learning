@@ -16,7 +16,7 @@ data = readtable([save_dir, 'residuals.csv']);
 
 %% Get model
 
-subjs = [{'2'}, {'4'}, {'6'}, {'10'}];
+subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'6'}, {'8'}, {'10'}];
 nSubj = numel(subjs);
 nNode = 10;
 beta = zeros(nSubj,1);
@@ -24,7 +24,7 @@ r0 = zeros(nSubj,1);
 r1 = zeros(nSubj,1);
 E = zeros(nSubj,1);
 diff = zeros(nSubj,1);
-A = [0 1 1 1 0 0 0 0 0 1;
+M = [0 1 1 1 0 0 0 0 0 1;
     1 0 1 1 1 0 0 0 0 0;
     1 1 0 1 1 0 0 0 0 0;
     1 1 1 0 1 0 0 0 0 0;
@@ -34,12 +34,28 @@ A = [0 1 1 1 0 0 0 0 0 1;
     0 0 0 0 0 1 1 0 1 1;
     0 0 0 0 0 1 1 1 0 1
     1 0 0 0 0 0 1 1 1 0].*0.25;
+L = [0 1 1 0 0 0 0 0 1 1;
+    1 0 1 1 0 0 0 0 0 1;
+    1 1 0 1 1 0 0 0 0 0;
+    0 1 1 0 1 1 0 0 0 0;
+    0 0 1 1 0 1 1 0 0 0;
+    0 0 0 1 1 0 1 1 0 0;
+    0 0 0 0 1 1 0 1 1 0;
+    0 0 0 0 0 1 1 0 1 1;
+    1 0 0 0 0 0 1 1 0 1
+    1 1 0 0 0 0 0 1 1 0].*0.25;
 A_hat = zeros(nSubj, nNode, nNode);
 
 for s = 1:nSubj
     % select subject
     fprintf('\n************** Subj %s ************\n', subjs{s});
     curr = data(strcmpi(data.subj,subjs{s}),:);
+    
+    if mod(str2double(subjs{s}),2) == 0
+        A = M;
+    else
+        A = L;
+    end
     
     rt = curr.resid;
     trials = curr.order;

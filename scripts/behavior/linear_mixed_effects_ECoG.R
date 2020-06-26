@@ -91,12 +91,12 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 # LMER
 
 ## learn
-stat_learn = lmer(data=df_modular, rt~scale(log10(order)) + finger + hand_transition + block + scale(log(recency_fact)) + sess + (1 + scale(log10(order)) + scale(log(recency_fact)) |subj))
+stat_learn = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + hand_transition + block + scale(log(recency_fact)) + sess + (1 + scale(log10(order)) + scale(log(recency_fact)) |subj))
 anova(stat_learn)
 
 # save residuals
-df_modular$resid = resid(stat_learn)
-write.csv(df_modular, file = 'behavior_preprocessed/residuals.csv')
+df_correct$resid = resid(stat_learn)
+write.csv(df_correct, file = 'behavior_preprocessed/residuals.csv')
 
 
 ## graph
@@ -131,7 +131,7 @@ anova(stat_no_pool)
 summary(stat_no_pool)
 
 # full pooling
-stat_pool = lm.beta(lm(data=filter(df_modular, subj == '10'), rt~scale(order)*transition + finger + hand_transition +  block + scale(log(recency_fact)) + sess ))
+stat_pool = lm.beta(lm(data=filter(df_modular, subj == '8'), rt~scale(order)*transition + finger + hand_transition +  block + scale(log(recency_fact)) ))
 anova(stat_pool)
 summary(stat_pool)
 
@@ -141,7 +141,7 @@ summary(stat_pool)
 # Plot
 
 avg_data = df_correct %>%
-  group_by(order) %>%
+  group_by(order, graph) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
 
 plot = ggplot(data=avg_data, aes(x=order, y=mean_rt))
@@ -175,5 +175,18 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(215/255,190/255,123/255), rgb(33/255,67/255,104/255))) +
   ggsave(paste( 'behavior_preprocessed/images/rt_mTurk_bin_cc.pdf', sep = ''))
 
+## Graph
+nbin = 40
+bin_data_graph= data_frame(trial = c(tapply(avg_data$order, cut(avg_data$order, nbin), mean), 
+                                        tapply(avg_data$order, cut(avg_data$order, nbin), mean)),
+                              mean_rt = c(tapply(filter(avg_data, graph == "modular")$mean_rt, cut(filter(avg_data, graph == "modular")$order, nbin), mean), 
+                                          tapply(filter(avg_data, graph == "lattice")$mean_rt, cut(filter(avg_data, graph == "lattice")$order, nbin), mean)),
+                              transition = c(rep("modular", times = length(tapply(avg_data$order, cut(avg_data$order, nbin), mean))), 
+                                             rep("lattice", times = length(tapply(avg_data$order, cut(avg_data$order, nbin), mean)))))
 
+
+plot = ggplot(data=bin_data_graph, aes(x=trial, y=mean_rt, color = transition))
+plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
+  theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(215/255,190/255,123/255), rgb(33/255,67/255,104/255))) +
+  ggsave(paste( 'behavior_preprocessed/images/rt_mTurk_bin_graph.pdf', sep = ''))
 

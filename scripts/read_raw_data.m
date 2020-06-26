@@ -14,8 +14,8 @@ clc
 addpath(genpath('/Users/stiso/Documents/MATLAB/ieeg-matlab-1.13.2/'))
 
 % define variables
-HUP_ID = 'HUP198';
-subj = '10';
+HUP_ID = 'HUP182';
+subj = '3';
 sess = '';
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 
@@ -55,7 +55,7 @@ end
 % only run this if you get an error above
 
 if save_flag
-    st = 19939.42*srate;
+    st = 18844.07*srate;
     if ~isempty(sess)
         save([save_dir, subj, '/sess_', sess, 'start_time.mat'], 'st')
     else
@@ -67,16 +67,16 @@ end
 
 % there are limits on how much data you can request at once.
 % The current (hz * channels * seconds) max is (500 * 130 * 2000)
-data1 = session.data.getvalues(st:dur,1:nElec/4);
+data1 = session.data.getvalues(st:dur,1:floor(nElec/4));
 data1 = data1';
 
-data2 = session.data.getvalues(st:dur,(nElec/4 + 1):(nElec/4 + nElec/4));
+data2 = session.data.getvalues(st:dur,(floor(nElec/4) + 1):(floor(nElec/4)*2));
 data2 = data2';
 
-data3 = session.data.getvalues(st:dur,(2*nElec/4 + 1):(2*nElec/4 + nElec/4));
+data3 = session.data.getvalues(st:dur,(floor(nElec/4)*2  + 1):(floor(nElec/4)*3));
 data3 = data3';
 
-data4 = session.data.getvalues(st:dur,(3*nElec/4 + 1):nElec);
+data4 = session.data.getvalues(st:dur,(floor(nElec/4)*3  + 1):nElec);
 data4 = data4';
 
 data = [data1; data2; data3; data4];
