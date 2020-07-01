@@ -5,10 +5,11 @@ clc
 
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
+addpath(genpath('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/'))
 addpath(genpath('/Users/stiso/Documents/Code/graph_learning/functions/'))
 
 % define variables
-subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'6'}, {'8'}, {'10'}];
+subjs = [{'1'}, {'4'}, {'6'}, {'8'}, {'10'}, {'2'}, {'3'}];
 feature = 'lfp'; % pow or lfp
 freqs = logspace(log10(3), log10(150), 50);
 
@@ -18,11 +19,10 @@ within1 = [233,163,201]./255;
 within2 = [161,215,106]./255;
 center1 = [197,27,125]./255;
 center2 = [77,146,33]./255;
-colors = [trans1; within1; center1; within1; trans1; trans2; within2; center2; within2; trans2];
+cluster_colors = [trans1; within1; center1; within1; trans1; trans2; within2; center2; within2; trans2];
 
 
 for subj_idx = 1:numel(subjs)
-    clear D_perm
     subj = subjs{subj_idx};
     save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
     r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
@@ -35,9 +35,19 @@ for subj_idx = 1:numel(subjs)
     
     % load stuff
     load([save_dir, subj, '/ft_data.mat'])
-    load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
+    load([save_dir, subj, '/header_clean.mat'])
     load([save_dir, subj, '/good_events.mat']) % in samples
-    
+    try
+       fname = dir([save_dir, subj, '/*/electrodenames_coordinates_mni.csv']);
+        coords = readtable([fname.folder, '/', fname.name]);
+        coords.Var1 = fix_names(coords.Var1);
+        coord_idx = ismember(cell2mat(coords.Var1),cell2mat(elec_labels),'rows');
+        coords = coords(coord_idx,:);
+        flag = true;
+    catch
+        fprintf('No task data')
+        flag = false;
+    end
     load([save_dir, subj, '/task_data.mat'])
     
     % analysis varaibles
@@ -73,8 +83,10 @@ for subj_idx = 1:numel(subjs)
         1 1 0 0 0 0 0 1 1 0].*0.25;
     if mod(str2double(subjs{subj_idx}),2) == 0
         A = M;
+        colors = cluster_colors;
     else
         A = L;
+        colors = viridis(nNode);
     end
     
     G = expm(A);
@@ -180,74 +192,51 @@ for subj_idx = 1:numel(subjs)
         saveas(gca, [img_dir, '/MDS_', feature, '_', elec, '.png'], 'png')
         
         % correlations
-        G_corr = corr(reshape(G(tri_mask),[],1), reshape(D(tri_mask),[],1));
-        A_corr = corr(reshape(A(tri_mask),[],1), reshape(D(tri_mask),[],1));
-        A_hat_corr = corr(reshape(A_hat(tri_mask),[],1), reshape(D(tri_mask),[],1));
+        G_corr(e) = corr(reshape(G(tri_mask),[],1), reshape(D(tri_mask),[],1));
+        A_corr(e) = corr(reshape(A(tri_mask),[],1), reshape(D(tri_mask),[],1));
+        A_hat_corr(e) = corr(reshape(A_hat(tri_mask),[],1), reshape(D(tri_mask),[],1));
         
+    end
+    
+    save([r_dir, 'subj' subj, '/searchlight_corrs.mat'], 'G_corr', 'A_corr', 'A_hat_corr')
+    
+    % save node file
+    if flag
+        subj_node_file = [r_dir, 'subj', subj, '/A_hat_', feature, '.node'];    
+        write_bv_node( subj_node_file, coords.Var2, coords.Var3, coords.Var4,...
+            A_hat_corr, [], elec_labels);
+        
+        subj_node_file = [r_dir, 'subj', subj, '/A_', feature, '.node'];    
+        write_bv_node( subj_node_file, coords.Var2, coords.Var3, coords.Var4...
+            , A_corr, [], elec_labels);
+    
+        subj_node_file = [r_dir, 'subj', subj, '/G_', feature, '.node'];    
+        write_bv_node( subj_node_file, coords.Var2, coords.Var3, coords.Var4...
+            , G_corr, [], elec_labels);
+    
+        % plot
+        BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
+            [r_dir, 'subj', subj, '/A_hat_', feature, '.node'],[r_dir, 'rsa_corr.mat'], ...
+            ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/A_hat_brain_', feature, '.jpg']);
+        
+        
+        BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
+            [r_dir, 'subj', subj, '/A_', feature, '.node'],[r_dir, 'rsa_corr.mat'], ...
+            ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/A_brain_', feature, '.jpg']);
+        
+        
+        BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
+            [r_dir, 'subj', subj, '/G_', feature, '.node'],[r_dir, 'rsa_corr.mat'], ...
+            ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/G_brain_', feature, '.jpg']);
+    else
+        [~,I] = max(A_corr);
+        fprintf('Max A correlation at %s\n', elec_labels{I})
+        
+        [~,I] = max(G_corr);
+        fprintf('Max G correlation at %s\n', elec_labels{I})
+        
+        [~,I] = max(A_hat_corr);
+        fprintf('Max A_hat correlation at %s\n', elec_labels{I})
     end
 end
 
-
-
-%     %% Null Models
-%
-%     % permutation
-%     nPerm = 100;
-%     D_perm = zeros(nNode, nNode, nPerm);
-%     for n = 1:nPerm
-%         fprintf('\nPerm %d', n);
-%         % count the number of times you see each transition
-%         N = zeros(nNode);
-%         r = randi([2,nTrial-1]);
-%         perm_walk = [good_walk(r:end), good_walk(1:(r-1))];
-%         % leave one out cv
-%         k = nTrial;
-%         for i = 1:k
-%             % split
-%             train = true(nTrial,1);
-%             train(i) = false;
-%             test = ~train;
-%
-%             % get dist
-%             [d,m] = get_rdm(feats, train, test, perm_walk, nNode);
-%             D_perm(:,:,n) = D_perm(:,:,n) + d;
-%             N = N + m;
-%         end
-%         D_perm(:,:,n) = D_perm(:,:,n)./N;
-%         figure(1); clf;
-%         imagesc(D_perm(:,:,n))
-%     end
-%     % D_perm(logical(eye(nNode))) = 0;
-%
-%     % correlations
-%     G_corr_perm = zeros(nPerm,1);
-%     A_corr_perm = zeros(nPerm,1);
-%     hat_corr_perm = zeros(nPerm,1);
-%
-%     for n = 1:nPerm
-%         curr = D_perm(:,:,n);
-%         curr(logical(eye(nNode))) = 0;
-%         G_corr_perm(n) = corr(reshape(G(tri_mask),[],1), reshape(curr(tri_mask),[],1));
-%         A_corr_perm(n) = corr(reshape(A(tri_mask),[],1), reshape(curr(tri_mask),[],1));
-%         hat_corr_perm(n) = corr(reshape(A_hat(tri_mask),[],1), reshape(curr(tri_mask),[],1));% space
-%     end
-%
-%     figure(1); clf
-%     histogram(G_corr_perm, 'Normalization', 'probability', 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8); hold on
-%     plot([G_corr, G_corr], [0, .3], 'red', 'linewidth', 3)
-%     title('Communicability')
-%     saveas(gca, [img_dir, '/G_rsa_', feature, '.png'], 'png')
-%
-%     figure(2); clf
-%     histogram(A_corr_perm, 'Normalization', 'probability', 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8); hold on
-%     plot([A_corr, A_corr], [0, .3], 'red', 'linewidth', 3)
-%     title('A')
-%     saveas(gca, [img_dir, '/A_rsa_', feature, '.png'], 'png')
-%
-%     figure(3); clf
-%     histogram(hat_corr_perm, 'Normalization', 'probability', 'FaceColor',rgb('steelblue'),'EdgeColor','white','facealpha', 0.8); hold on
-%     plot([A_hat_corr, A_hat_corr], [0, .3], 'red', 'linewidth', 3)
-%     title('A_hat')
-%     saveas(gca, [img_dir, '/A_hat_rsa_', feature, '.png'], 'png')
-%
-% end

@@ -22,8 +22,16 @@ summary(df)
 df_clean = subset(df, select = -c(ISI_raw,onset_raw,path,resp_raw,pID))
 summary(df_clean)
 
+# chage typing response into linear 1-2-3-4 instead of a,b,c,d
+df_clean$typing_raw = as.numeric(mapvalues(df_clean$typing_raw, from = c('a', 'b', 'c', 'd'), to = c('1','2','3','4')))
+
+
+# add "reward" column for subjects that had points feedback
+df_clean$points = TRUE
+df_clean$points[df_clean$subj %in% c(1,3,8)] = FALSE
+
 #make factors
-cat_vars = c('graph', 'correct_raw', 'hand','subj','hand_transition','transition', 'walk')
+cat_vars = c('graph', 'correct_raw', 'hand','subj','hand_transition','transition', 'walk', 'points')
 for (var in cat_vars){
   df_clean[var] = 
     as.factor(unlist(df_clean[var]))
@@ -34,7 +42,7 @@ p<-ggplot(df_clean, aes(x=rt_raw)) +
   geom_histogram(fill='pink', color='white')
 p
 ggsave(paste( 'behavior_preprocessed/images/rt_ecog.png', sep = ''))
-# make rts inverse
+# make rts log
 df_clean$rt = log10(df_clean$rt_raw)
 p<-ggplot(df_clean, aes(x=rt)) + 
   geom_histogram(fill='lightblue', color='white')
@@ -90,8 +98,10 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 #################
 # LMER
 
-## learn
-stat_learn = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + hand_transition + block + scale(log(recency_fact)) + sess + (1 + scale(log10(order)) + scale(log(recency_fact)) |subj))
+# test if points makes a difference
+
+## learn and graph
+stat_learn = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + typing_raw + hand_transition + block + scale(log(recency_fact)) + sess + (1 + scale(log10(order))*graph + scale(log(recency_fact)) |subj))
 anova(stat_learn)
 
 # save residuals
@@ -100,16 +110,16 @@ write.csv(df_correct, file = 'behavior_preprocessed/residuals.csv')
 
 
 ## graph
-stat_graph = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + hand_transition +  block + scale(log(recency_fact)) + sess + (1 + scale(log10(order))*graph|subj))
+stat_graph = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + typing_raw + hand_transition +  block + scale(log(recency_fact)) + sess + (1 + scale(log10(order))*graph|subj))
 anova(stat_graph)
 
 
 ### surprisal
-stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(log(recency_fact)) + sess + 
+stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + typing_raw + finger + hand + hand_transition +  block + scale(log(recency_fact)) + sess + 
                          (1 + scale(log10(order))*transition |subj))
 
 
-stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + hand + hand_transition +  block + scale(log(recency_fact)) + sess + 
+stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + typing_raw + hand + hand_transition +  block + scale(log(recency_fact)) + sess + 
                          (1 + scale(log10(order))*transition + scale(log(recency_fact)) |subj))
 # chi sq
 anova(stat_surprisal2, stat_surprisal1, test="Chisq")
@@ -140,6 +150,9 @@ summary(stat_pool)
 ##################
 # Plot
 
+plot = ggplot(data = df_correct, aes(x=rt, fill=as.factor(typing_raw)))
+plot + geom_histogram(aes(y=..density..),alpha=.8)
+
 avg_data = df_correct %>%
   group_by(order, graph) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
@@ -148,7 +161,7 @@ plot = ggplot(data=avg_data, aes(x=order, y=mean_rt))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + 
   geom_ribbon(aes(x=order, y=mean_rt, ymax=mean_rt+sd_rt, ymin = mean_rt-sd_rt), color = 'grey', alpha = 0.2)
-ggsave(paste( 'behavior_preprocessed/images/rt_mTurk.png', sep = ''))
+ggsave(paste( 'behavior_preprocessed/images/rt_ECoG.png', sep = ''))
 
 
 avg_cluster = filter(df_modular, sess == '1') %>%
@@ -158,7 +171,7 @@ avg_cluster = filter(df_modular, sess == '1') %>%
 plot = ggplot(data=avg_cluster, aes(x=order, y=mean_rt, color=transition))
 plot + geom_line(size=1) + ggtitle('RT over time, by Transition') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)')
-ggsave(paste( 'behavior_preprocessed/images/rt_mTurk_cc.png', sep = ''))
+ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_cc.png', sep = ''))
 
 
 nbin = 40
@@ -173,7 +186,7 @@ bin_data_cluster = data_frame(trial = c(tapply(avg_cluster$order, cut(avg_cluste
 plot = ggplot(data=bin_data_cluster, aes(x=trial, y=mean_rt, color = transition))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(215/255,190/255,123/255), rgb(33/255,67/255,104/255))) +
-  ggsave(paste( 'behavior_preprocessed/images/rt_mTurk_bin_cc.pdf', sep = ''))
+  ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_cc.pdf', sep = ''))
 
 ## Graph
 nbin = 40
@@ -188,5 +201,5 @@ bin_data_graph= data_frame(trial = c(tapply(avg_data$order, cut(avg_data$order, 
 plot = ggplot(data=bin_data_graph, aes(x=trial, y=mean_rt, color = transition))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(215/255,190/255,123/255), rgb(33/255,67/255,104/255))) +
-  ggsave(paste( 'behavior_preprocessed/images/rt_mTurk_bin_graph.pdf', sep = ''))
+  ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_graph.pdf', sep = ''))
 
