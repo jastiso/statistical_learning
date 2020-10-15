@@ -49,7 +49,7 @@ A_hat = zeros(nSubj, nNode, nNode);
 for s = 1:nSubj
     % select subject
     fprintf('\n************** Subj %s ************\n', subjs{s});
-    curr = data(data.subj==str2double(subjs{s}),:);
+    curr = data(data.subj,str2dousubjs{s},:);
     
     if mod(str2double(subjs{s}),2) == 0
         A = M;
@@ -78,7 +78,7 @@ save([save_dir, 'max_ent.mat'], 'beta', 'r0', 'r1', 'E', 'diff', 'A_hat')
 %% plot
 
 figure(1); clf
-histogram((beta(beta < 900)), 30, 'facecolor', rgb('steelblue'), 'facealpha', 0.6, 'edgecolor', 'white')
+histogram((beta), 30, 'facecolor', rgb('steelblue'), 'facealpha', 0.6, 'edgecolor', 'white')
 xlabel('log( beta )')
 ylabel('Count')
 saveas(gca, [img_dir, 'ecog_betas.png'], 'png')

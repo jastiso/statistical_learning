@@ -55,7 +55,7 @@ end
 % only run this if you get an error above
 
 if save_flag
-    st = 23062.524*srate;
+    st = 18844.07*srate;
     if ~isempty(sess)
         save([save_dir, subj, '/sess_', sess, 'start_time.mat'], 'st')
     else
@@ -107,9 +107,9 @@ else
         save([save_dir, subj, '/raw_pd_sess', sess, '.mat'], 'pd')
         save([save_dir, subj, '/header_sess', sess, '.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
     else
-        save([save_dir, subj, '/raw_data_sess1.mat'], 'data', '-v7.3')
-        save([save_dir, subj, '/raw_pd_sess1.mat'], 'pd')
-        save([save_dir, subj, '/header_sess1.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
+        save([save_dir, subj, '/raw_data.mat'], 'data', '-v7.3')
+        save([save_dir, subj, '/raw_pd.mat'], 'pd')
+        save([save_dir, subj, '/header.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
     end
 end
 

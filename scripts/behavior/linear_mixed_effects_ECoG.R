@@ -141,7 +141,7 @@ anova(stat_no_pool)
 summary(stat_no_pool)
 
 # full pooling
-stat_pool = lm.beta(lm(data=filter(df_modular, subj == '8'), rt~scale(order)*transition + finger + hand_transition +  block + scale(log(recency_fact)) ))
+stat_pool = lm.beta(lm(data=filter(df_modular, subj == '16'), rt~scale(order)*transition + finger + hand_transition +  block + scale(log(recency_fact)) ))
 anova(stat_pool)
 summary(stat_pool)
 
@@ -184,7 +184,7 @@ bin_data_cluster = data_frame(trial = c(tapply(avg_cluster$order, cut(avg_cluste
 
 
 plot = ggplot(data=bin_data_cluster, aes(x=trial, y=mean_rt, color = transition))
-plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
+plot + geom_line(size=1) + ggtitle('RT over time, by Edge Type') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(215/255,190/255,123/255), rgb(33/255,67/255,104/255))) +
   ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_cc.pdf', sep = ''))
 

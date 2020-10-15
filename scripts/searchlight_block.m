@@ -34,7 +34,10 @@ L = [0 1 1 0 0 0 0 0 1 1;
     0 0 0 0 0 1 1 0 1 1;
     1 0 0 0 0 0 1 1 0 1
     1 1 0 0 0 0 0 1 1 0].*0.25;
-
+ % load null model
+load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/RSA_null.mat');
+D_null = D;
+clear D
 
 trans1 = [253,224,239]./255;
 trans2 = [230,245,208]./255;
@@ -94,25 +97,25 @@ for subj_idx = 1:numel(subjs)
     % load A_hat
     load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/behavior_preprocessed/max_ent.mat', 'A_hat')
     A_hat = squeeze(A_hat(subj_idx,:,:));
-    
+   
     % initialize data structure
     G_corr = nan(nElec,nBlock);
     A_corr = nan(nElec,nBlock);
     A_hat_corr = nan(nElec,nBlock);
-            
+    N_corr = nan(nElec,nBlock);
+    
     curr_trials = trial(good_trials);
+    % need at least 200 ms for power analyses, also anything short doesnt
+    % really make sense
+    min_dur = min(good_events(:,2) - good_events(:,1));
+    good_walk = walk(good_trials) + 1; % sswitch to matlab indexing
+    keep_idx = true(numel(good_walk),1);
+    if min_dur < .2*srate
+        keep_idx = keep_idx & (good_events(:,2) - good_events(:,1) > .2*srate);
+    end
+    good_walk = good_walk(keep_idx);
+    
     for b = 1:nBlock
-        
-         % need at least 200 ms for power analyses, also anything short doesnt
-        % really make sense
-        min_dur = min(good_events(:,2) - good_events(:,1));
-        good_walk = walk(good_trials) + 1; % sswitch to matlab indexing
-        keep_idx = true(numel(good_walk),1);
-        if min_dur < .2*srate
-            keep_idx = keep_idx & (good_events(:,2) - good_events(:,1) > .2*srate);
-        end
-        good_walk = good_walk(keep_idx);
-        good_events = good_events(keep_idx,:);
         
         % get trial indicies for current block
         ind = block_indices(b,:);
@@ -190,18 +193,13 @@ for subj_idx = 1:numel(subjs)
             D = D./N;
             D(logical(eye(nNode))) = NaN;
             
-            % average dist
-            figure(1); clf
-            imagesc(D); colorbar
-            D(logical(eye(nNode))) = 0;
-            
             %% correlations
             
             % correlations
             G_corr(e,b) = corr(reshape(G(tri_mask),[],1), reshape(D(tri_mask),[],1));
             A_corr(e,b) = corr(reshape(A(tri_mask),[],1), reshape(D(tri_mask),[],1));
             A_hat_corr(e,b) = corr(reshape(A_hat(tri_mask),[],1), reshape(D(tri_mask),[],1));
-            
+            N_corr(e,b) = corr(reshape(D_null(tri_mask), [], 1), reshape(D(tri_mask),[],1));
         end
                         
     end
@@ -209,17 +207,23 @@ for subj_idx = 1:numel(subjs)
     
     %plot
     figure(1); clf
-    plot(A_corr')
+    plot(A_corr', 'linewidth', 2); hold on
+    plot(1:nBlock, mean(N_corr), 'k', 'linewidth', 3)
+    shade_plot(1:nBlock, mean(N_corr), std(N_corr, [], 1)/sqrt(nElec), 'k', 0.4)
     title('A')
     saveas(gca, [img_dir, '/block_A.png'], 'png')
     
     figure(2); clf
-    plot(A_hat_corr');
+    plot(A_hat_corr', 'linewidth', 2); hold on
+    plot([1:nBlock]', mean(N_corr)', 'k', 'linewidth', 3)
+    shade_plot(1:nBlock, mean(N_corr), std(N_corr, [], 1)/sqrt(nElec), 'k', 0.4)
     title('A_hat')
     saveas(gca, [img_dir, '/block_A_hat.png'], 'png')
     
     figure(3); clf
-    plot(G_corr');
+    plot(G_corr', 'linewidth', 2); hold on
+    plot(1:nBlock, mean(N_corr), 'k', 'linewidth', 3)
+    shade_plot(1:nBlock, mean(N_corr), std(N_corr, [], 1)/sqrt(nElec), 'k', 0.4)
     title('G')
     saveas(gca, [img_dir, '/block_G.png'], 'png')
 end

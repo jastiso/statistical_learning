@@ -4,15 +4,15 @@ clear
 addpath(genpath('/Users/stiso/Documents/MATLAB/ieeg-matlab-1.13.2/'))
 addpath(genpath('/Users/stiso/Documents/MATLAB/eeglab_current/'))
 % define variables
-subj = '3';
+subj = '16';
 sess = ''; % can be empty
 sess_flag = ~isempty(sess);
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 
 % load stuff
 if ~sess_flag
-    load([save_dir, subj, '/raw_pd.mat'], 'pd')
-    load([save_dir, subj, '/header.mat'], 'srate', 'HUP_ID', 'subj')
+    load([save_dir, subj, '/raw_pd_sess1.mat'], 'pd')
+    load([save_dir, subj, '/header_sess1.mat'], 'srate', 'HUP_ID', 'subj')
 else
     load([save_dir, subj, '/raw_pd_sess', sess, '.mat'], 'pd')
     load([save_dir, subj, '/header_sess', sess, '.mat'], 'srate', 'HUP_ID', 'subj')
@@ -37,7 +37,7 @@ try
 catch
     minITI = 40;
     minDuration = 50;
-    event_thresh = 50000;
+    event_thresh = 1000000;
 end
 
 events = find_events(pd(2,:), srate, minITI, minDuration, event_thresh, "show") ;
