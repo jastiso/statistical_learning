@@ -101,7 +101,7 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 # test if points makes a difference
 
 ## learn and graph
-stat_learn = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + typing_raw + hand_transition + block + scale(log(recency_fact)) + sess + (1 + scale(log10(order))*graph + scale(log(recency_fact)) |subj))
+stat_learn = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + typing_raw + hand_transition + block + points + scale(log(recency_fact)) + sess + (1 + scale(log10(order))*graph + scale(log(recency_fact)) |subj))
 anova(stat_learn)
 
 # save residuals
@@ -110,16 +110,16 @@ write.csv(df_correct, file = 'behavior_preprocessed/residuals.csv')
 
 
 ## graph
-stat_graph = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + typing_raw + hand_transition +  block + scale(log(recency_fact)) + sess + (1 + scale(log10(order))*graph|subj))
+stat_graph = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + points + typing_raw + hand_transition +  block + scale(log(recency_fact)) + sess + (1 + scale(log10(order))*graph|subj))
 anova(stat_graph)
 
 
 ### surprisal
-stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + typing_raw + finger + hand + hand_transition +  block + scale(log(recency_fact)) + sess + 
+stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + typing_raw + finger + points + hand + hand_transition +  block + scale(log(recency_fact)) + sess + 
                          (1 + scale(log10(order))*transition |subj))
 
 
-stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + typing_raw + hand + hand_transition +  block + scale(log(recency_fact)) + sess + 
+stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + points + typing_raw + hand + hand_transition + block + scale(log(recency_fact)) + sess + 
                          (1 + scale(log10(order))*transition + scale(log(recency_fact)) |subj))
 # chi sq
 anova(stat_surprisal2, stat_surprisal1, test="Chisq")
@@ -200,6 +200,6 @@ bin_data_graph= data_frame(trial = c(tapply(avg_data$order, cut(avg_data$order, 
 
 plot = ggplot(data=bin_data_graph, aes(x=trial, y=mean_rt, color = transition))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
-  theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(215/255,190/255,123/255), rgb(33/255,67/255,104/255))) +
+  theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(122/255,138/255,92/255), rgb(97/255,67/255,90/255))) +
   ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_graph.pdf', sep = ''))
 
