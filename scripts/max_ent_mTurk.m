@@ -3,6 +3,7 @@
 clear
 
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
+addpath(genpath('/Users/stiso/Documents/Code/graph_learning/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
 save_dir = '/Users/stiso/Documents/Python/graphLearning/old_tasks/mTurk-10-node-breaks/data/preprocessed/';
@@ -11,7 +12,7 @@ img_dir = '/Users/stiso/Documents/Python/graphLearning/images/';
 
 % load stuff
 data = readtable([save_dir, 'residuals.csv']);
-data = data(data.is_lattice == 0,:);
+%data = data(data.is_lattice == 0,:);
 walks = readtable('/Users/stiso/Documents/Python/graphLearning/old_tasks/mTurk-10-node-breaks/experiment/stims/nodes_random.csv');
 
 %% Get model

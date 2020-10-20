@@ -27,6 +27,7 @@ p<-ggplot(acc, aes(x=total_acc)) +
 p
 summary(acc$total_acc)
 
+# only run this is some people have acc less than 80
 subj_rm = df$workerid == acc$workerid[acc$total_acc < 80]
 df = df[!subj_rm,]
 
@@ -115,6 +116,7 @@ p<-ggplot(df_clean, aes(x=rt)) +
 p
 ggsave(paste( '/data/preprocessed/images/rt', ext,'.png', sep = ''))
 # make rts log
+df_clean$rt_raw = df_clean$rt
 df_clean$rt = log10(df_clean$rt)
 p<-ggplot(df_clean, aes(x=rt)) + 
   geom_histogram(fill='lightblue', color='white')
@@ -188,6 +190,7 @@ anova(stat_learn)
 # for later plotting
 df_modular$resid = resid(lmer(data=df_modular, rt~scale(log10(cum_trial)) + scale(log(recency_fact)) + finger + hand + hand_transition + stage_num + log10(recency) + 
                                 (1 + scale(log10(cum_trial)) + scale(log(recency_fact))|workerid)))
+
 # for max_ent analyses
 max_ent_data = select(df_correct, c('walk_id', 'workerid', 'trial', 'is_lattice'))
 max_ent_data$resid = resid(stat_learn)
@@ -218,8 +221,6 @@ summary(stat_surprisal2)
 
 # chi sq
 anova(stat_surprisal1, stat_surprisal2, test="Chisq")
-
-
 
 
 
@@ -259,11 +260,11 @@ anova(stat_prob)
 subjs = unique(df_modular$workerid)
 
 for (i in seq(1,10)){
-  subset_subj = sample(subjs, 10, replace=FALSE)
-  idx = unlist(lapply(df_correct$workerid, function(x) is.element(x, subset_subj)))
+  subset_subj = sample(subjs, 7, replace=FALSE)
+  idx = unlist(lapply(df_modular$workerid, function(x) is.element(x, subset_subj)))
   tmp_df = df_correct[idx,]
-  subset_stat = lmer(data=tmp_df, rt~scale(log10(cum_trial))*probability + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
-                       (1 + scale(log10(cum_trial))*probability + scale(lag10) |workerid))
+  subset_stat = lmer(data=tmp_df, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
+                       (1 + scale(log10(cum_trial))*is_crosscluster + scale(lag10) |workerid))
   print(anova(subset_stat))
 }
 
@@ -296,7 +297,7 @@ ggsave(paste( 'data/preprocessed/images/rt_mTurk_finger.png', sep = ''))
 
 avg_cluster = df_modular %>%
   group_by(cum_trial, is_crosscluster) %>%
-  dplyr::summarise(mean_rt = mean(rt), sd_rt = sd(rt), mean_resid = mean(resid))
+  dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw), mean_resid = mean(resid))
 avg_cluster$is_crosscluster = factor(avg_cluster$is_crosscluster,levels(avg_cluster$is_crosscluster)[c(2,1)])
 
 plot = ggplot(data=avg_cluster, aes(x=cum_trial, y=mean_rt, color=is_crosscluster))
@@ -347,7 +348,7 @@ ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_prob', ext,'.png', s
 
 
 #bin
-nbin = 50
+nbin = 40
 bin_data = data_frame(trial = tapply(avg_rt$cum_trial, cut(avg_rt$cum_trial, nbin), mean), mean_rt = tapply(avg_rt$mean_rt, cut(avg_rt$cum_trial, nbin), mean))
 
 plot = ggplot(data=bin_data, aes(x=trial, y=mean_rt))
@@ -373,7 +374,7 @@ bin_data_cluster = data_frame(trial = c(tapply(avg_cluster$cum_trial, cut(avg_cl
                                              tapply(filter(avg_cluster, is_crosscluster == "True")$mean_resid, cut(filter(avg_cluster, is_crosscluster == "True")$cum_trial, nbin), mean)))
 
 
-plot = ggplot(data=bin_data_cluster, aes(x=trial, y=mean_resid, color = is_crosscluster))
+plot = ggplot(data=bin_data_cluster, aes(x=trial, y=mean_rt, color = is_crosscluster))
 plot + geom_line(size=1) + ggtitle('RT over time, by transition') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(215/255,190/255,123/255), rgb(33/255,67/255,104/255))) 
   ggsave(paste( 'experiment/data/preprocessed/images/resid_mTurk_bin_cc', ext,'.pdf', sep = ''))
