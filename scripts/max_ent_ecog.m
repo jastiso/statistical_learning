@@ -16,7 +16,8 @@ data = readtable([save_dir, 'residuals.csv']);
 
 %% Get model
 
-subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'6'}, {'8'}, {'10'}, {'12'}, {'16'}];
+subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'6'}, {'8'}, {'10'}, {'12'},{'18'}];
+%subjs = [{'14'},{'18'}];
 nSubj = numel(subjs);
 nNode = 10;
 beta = zeros(nSubj,1);
@@ -47,6 +48,10 @@ L = [0 1 1 0 0 0 0 0 1 1;
 A_hat = zeros(nSubj, nNode, nNode);
 
 for s = 1:nSubj
+    if ~exist([r_dir, 'subj', subjs{s}],'dir')
+       mkdir([r_dir, 'subj', subjs{s}]); 
+    end
+    
     % select subject
     fprintf('\n************** Subj %s ************\n', subjs{s});
     curr = data(data.subj==str2double(subjs{s}),:);

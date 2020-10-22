@@ -101,7 +101,7 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 # test if points makes a difference
 
 ## learn and graph
-stat_learn = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + typing_raw + hand_transition + block + points + scale(log(recency_fact)) + sess + (1 + scale(log10(order))*graph + scale(log(recency_fact)) |subj))
+stat_learn = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + typing_raw + hand_transition + scale(block) + points + scale(log(recency_fact)) + scale(sess) + (1 + scale(log10(order))*graph + scale(log(recency_fact)) |subj))
 anova(stat_learn)
 
 # save residuals
@@ -141,7 +141,7 @@ anova(stat_no_pool)
 summary(stat_no_pool)
 
 # full pooling
-stat_pool = lm.beta(lm(data=filter(df_modular, subj == '16'), rt~scale(order)*transition + finger + hand_transition +  block + scale(log(recency_fact)) ))
+stat_pool = lm.beta(lm(data=filter(df_modular, subj == '18'), rt~scale(order)*transition + finger + hand_transition +  block + scale(log(recency_fact)) ))
 anova(stat_pool)
 summary(stat_pool)
 

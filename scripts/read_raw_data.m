@@ -14,8 +14,8 @@ clc
 addpath(genpath('/Users/stiso/Documents/MATLAB/ieeg-matlab-1.13.2/'))
 
 % define variables
-HUP_ID = 'HUP205';
-subj = '16';
+HUP_ID = 'HUP206';
+subj = '18';
 sess = '';
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 
@@ -26,7 +26,13 @@ if ~exist([save_dir, subj], 'dir')
 end
 
 if ~isempty(sess)
-    session = IEEGSession([HUP_ID, '_typingTask_session', sess], 'jastiso', '/Users/stiso/Documents/MATLAB/jas_ieeglogin.bin');
+    %session = IEEGSession([HUP_ID, '_typingTask_session', sess], 'jastiso', '/Users/stiso/Documents/MATLAB/jas_ieeglogin.bin');
+    % HUP201 had a different nameing scheme
+    if strcmp(sess,'1')
+        session = IEEGSession([HUP_ID, '_typingTask_A'], 'jastiso', '/Users/stiso/Documents/MATLAB/jas_ieeglogin.bin');
+    else
+        session = IEEGSession([HUP_ID, '_typingTask_B'], 'jastiso', '/Users/stiso/Documents/MATLAB/jas_ieeglogin.bin');      
+    end
 else
     session = IEEGSession([HUP_ID, '_typingTask'], 'jastiso', '/Users/stiso/Documents/MATLAB/jas_ieeglogin.bin');
 end
@@ -55,7 +61,7 @@ end
 % only run this if you get an error above
 
 if save_flag
-    st = 23062.524*srate;
+    st = 25145.61*srate;
     if ~isempty(sess)
         save([save_dir, subj, '/sess_', sess, 'start_time.mat'], 'st')
     else
