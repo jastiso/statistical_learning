@@ -4,17 +4,16 @@ clear
 clc
 
 addpath(genpath('/Users/stiso/Documents/MATLAB/IRASA/'))
-addpath(genpath('/Users/stiso/Documents/MATLAB/Colormaps/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 addpath(genpath('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/'))
 addpath(genpath('/Users/stiso/Documents/Code/graph_learning/functions/'))
 
 % define variables
-subjs = [ {'1'}]%{'2'}, {'3'}, {'4'}, {'6'}, {'8'}, {'10'}, {'12'}];
+subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'6'}, {'8'}, {'10'}, {'12'}];
 feature = 'lfp'; % pow or lfp
 freqs = logspace(log10(3), log10(150), 50);
-nBlock = 2;
-block_indices = [1, 500; 501, 1000];
+nBlock = 4;
+block_indices = [1, 250; 251, 500; 501, 750; 751, 1000];
 M = [0 1 1 1 0 0 0 0 0 1;
     1 0 1 1 1 0 0 0 0 0;
     1 1 0 1 1 0 0 0 0 0;
@@ -35,8 +34,8 @@ L = [0 1 1 0 0 0 0 0 1 1;
     0 0 0 0 0 1 1 0 1 1;
     1 0 0 0 0 0 1 1 0 1
     1 1 0 0 0 0 0 1 1 0].*0.25;
-% load null model
-load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/RSA_dist_null.mat');
+ % load null model
+load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/RSA_null.mat');
 D_null = D;
 clear D
 
@@ -55,7 +54,7 @@ for subj_idx = 1:numel(subjs)
     r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
     img_dir = ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj];
     
-    
+
     % make diractories
     if ~exist(img_dir, 'dir')
         mkdir(img_dir);
@@ -66,8 +65,6 @@ for subj_idx = 1:numel(subjs)
     load([save_dir, subj, '/header_clean.mat'])
     load([save_dir, subj, '/good_events.mat']) % in samples
     load([r_dir, 'subj' subj, '/searchlight_corrs.mat'],'sig_idx')
-    load([save_dir, subj, '/order.mat'],'order')
-    D_null = D_null(order,order);
     
     try
         fname = dir([save_dir, subj, '/*/electrodenames_coordinates_mni.csv']);
@@ -103,7 +100,7 @@ for subj_idx = 1:numel(subjs)
     % load A_hat
     load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/behavior_preprocessed/max_ent.mat', 'A_hat')
     A_hat = squeeze(A_hat(subj_idx,:,:));
-    
+   
     % initialize data structure
     G_corr = nan(nElec,nBlock);
     A_corr = nan(nElec,nBlock);
@@ -128,7 +125,7 @@ for subj_idx = 1:numel(subjs)
         curr_idx = ((curr_trials > ind(1)) & (curr_trials <= ind(2)))' & keep_idx;
         
         if sum(curr_idx) == 0
-            continue
+           continue 
         end
         %% get features
         
@@ -176,43 +173,40 @@ for subj_idx = 1:numel(subjs)
         
         
         for e = 1:nElec
-            curr_feats = squeeze(feats(:,e,:));
-            elec = curr_data.label{e};
-            
-            D = zeros(nNode);
-            N = zeros(nNode);
-            % leave one out cv
-            k = nTrial;
-            
-            for i = 1:k
-                
-                % split
-                train = true(nTrial,1);
-                train(i) = false;
-                test = ~train;
-                
-                % get dist
-                [d,m] = get_rdm(curr_feats, train, test, good_walk, nNode);
-                D = D + d;
-                N = N + m;
-            end
-            D = D./N;
-            D(logical(eye(nNode))) = NaN;
-            
-            %% correlations
-            
-            % correlations
-            G_corr(e,b) = corr(reshape(G(tri_mask),[],1), reshape(D(tri_mask),[],1));
-            A_corr(e,b) = corr(reshape(A(tri_mask),[],1), reshape(D(tri_mask),[],1));
-            A_hat_corr(e,b) = corr(reshape(A_hat(tri_mask),[],1), reshape(D(tri_mask),[],1));
-            N_corr(e,b) = corr(reshape(D_null(tri_mask), [], 1), reshape(D(tri_mask),[],1));
+                curr_feats = squeeze(feats(:,e,:));
+                elec = curr_data.label{e};
+
+                D = zeros(nNode);
+                N = zeros(nNode);
+                % leave one out cv
+                k = nTrial;
+
+                for i = 1:k
+
+                    % split
+                    train = true(nTrial,1);
+                    train(i) = false;
+                    test = ~train;
+
+                    % get dist
+                    [d,m] = get_rdm(curr_feats, train, test, good_walk, nNode);
+                    D = D + d;
+                    N = N + m;
+                end
+                D = D./N;
+                D(logical(eye(nNode))) = NaN;
+
+                %% correlations
+
+                % correlations
+                G_corr(e,b) = corr(reshape(G(tri_mask),[],1), reshape(D(tri_mask),[],1));
+                A_corr(e,b) = corr(reshape(A(tri_mask),[],1), reshape(D(tri_mask),[],1));
+                A_hat_corr(e,b) = corr(reshape(A_hat(tri_mask),[],1), reshape(D(tri_mask),[],1));
+                N_corr(e,b) = corr(reshape(D_null(tri_mask), [], 1), reshape(D(tri_mask),[],1));
         end
-        
+             A_corr = A_corr(sig_idx,:);
+             N_corr = N_corr
     end
-    A_corr = A_corr(sig_idx,:);
-    A_hat_corr = A_hat_corr(sig_idx,:);
-    N_corr = N_corr(sig_idx,:);
-        
     save([r_dir, 'subj' subj, '/searchlight_corrs_block.mat'], 'G_corr', 'A_corr', 'A_hat_corr')
     
     %plot
@@ -224,17 +218,16 @@ for subj_idx = 1:numel(subjs)
     saveas(gca, [img_dir, '/block_A.png'], 'png')
     
     figure(2); clf
-    plot(mean(A_hat_corr)', 'linewidth', 2); hold on
-    shade_plot(1:nBlock, mean(A_hat_corr), std(A_hat_corr, [], 1)/sqrt(sum(sig_idx)),rgb('slategray'), 0.4)
+    plot(A_hat_corr', 'linewidth', 2); hold on
     plot([1:nBlock]', mean(N_corr)', 'k', 'linewidth', 3)
-    shade_plot(1:nBlock, mean(N_corr), std(N_corr, [], 1)/sqrt(sum(sig_idx)), 'k', 0.4)
+    shade_plot(1:nBlock, mean(N_corr), std(N_corr, [], 1)/sqrt(nElec), 'k', 0.4)
     title('A_hat')
     saveas(gca, [img_dir, '/block_A_hat.png'], 'png')
-    %
-    %     figure(3); clf
-    %     plot(G_corr', 'linewidth', 2); hold on
-    %     plot(1:nBlock, mean(N_corr), 'k', 'linewidth', 3)
-    %     shade_plot(1:nBlock, mean(N_corr), std(N_corr, [], 1)/sqrt(nElec), 'k', 0.4)
-    %     title('G')
-    %     saveas(gca, [img_dir, '/block_G.png'], 'png')
+    
+    figure(3); clf
+    plot(G_corr', 'linewidth', 2); hold on
+    plot(1:nBlock, mean(N_corr), 'k', 'linewidth', 3)
+    shade_plot(1:nBlock, mean(N_corr), std(N_corr, [], 1)/sqrt(nElec), 'k', 0.4)
+    title('G')
+    saveas(gca, [img_dir, '/block_G.png'], 'png')
 end

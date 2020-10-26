@@ -67,7 +67,11 @@ G = expm(A);
 % load A_hat
 load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/behavior_preprocessed/max_ent.mat', 'A_hat')
 A_hat = squeeze(A_hat(subj_idx,:,:));
-
+load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/RSA_dist_null.mat', 'D')
+dist_mat = D;
+% reorder distmat
+load([save_dir, subj, '/order.mat'],'order')
+dist_mat = dist_mat(order,order);
 
 %% Field trip format
 
@@ -127,7 +131,9 @@ end
 G_corr = zeros(nElec,1);
 A_corr = zeros(nElec,1);
 A_hat_corr = zeros(nElec,1);
+D_corr = zeros(nElec,1);
 sig_idx = zeros(nElec,1);
+sig_null_idx = zeros(nElec,1);
 for e = 1:nElec
     curr_feats = squeeze(feats(:,e,:));
     elec = ft_data.label{e};
@@ -170,6 +176,7 @@ for e = 1:nElec
     G_corr(e) = corr(reshape(G(tri_mask),[],1), reshape(D(tri_mask),[],1));
     A_corr(e) = corr(reshape(A(tri_mask),[],1), reshape(D(tri_mask),[],1));
     A_hat_corr(e) = corr(reshape(A_hat(tri_mask),[],1), reshape(D(tri_mask),[],1));
+    D_corr(e) = corr(reshape(dist_mat(tri_mask),[],1), reshape(D(tri_mask),[],1));
     
     % test against permutation model
     perm_corr = zeros(nSim,1);
@@ -203,15 +210,18 @@ for e = 1:nElec
        perm_corr(n) = corr(reshape(A_hat(tri_mask),[],1), reshape(D_perm(tri_mask),[],1));
     end
     % test if empirical corr is greater than 95% percent of nulls
-    fprintf('\nFor subject %s, contact %s is more correlated than %d null models', subj, elec, sum(A_hat_corr(e) < perm_corr))
+    fprintf('\nFor subject %s, contact %s is more correlated than %d null models, visual sim was more correlated than %d', subj, elec, sum(A_hat_corr(e) < perm_corr), sum(D_corr(e) > perm_corr))
     figure(1); clf
     histogram(perm_corr); hold on
     plot([A_hat_corr(e), A_hat_corr(e)], [0,20], 'r')
     % update index of elecs
     sig_idx(e) = sum(A_hat_corr(e) < perm_corr) >= (.95*nSim);
+    sig_null_idx(e) = sum(D_corr(e) > perm_corr) >= (0.95*nSim);
 end
+sig_idx = logical(sig_idx);
+sig_null_idx = logical(sig_null_idx);
 
-save([r_dir, 'subj' subj, '/searchlight_corrs.mat'], 'G_corr', 'A_corr', 'A_hat_corr', 'sig_idx')
+save([r_dir, 'subj' subj, '/searchlight_corrs.mat'], 'G_corr', 'A_corr', 'A_hat_corr', 'D_corr', 'sig_idx', 'perm_corr')
 
 % save node file
 sig_idx = logical(sig_idx);
@@ -220,13 +230,13 @@ if flag
     write_bv_node( subj_node_file, coords.Var2(sig_idx), coords.Var3(sig_idx), coords.Var4(sig_idx),...
         A_hat_corr(sig_idx), [], elec_labels(sig_idx));
     
-    subj_node_file = [r_dir, 'subj', subj, '/A_', feat_type, '.node'];
-    write_bv_node( subj_node_file, coords.Var2(sig_idx), coords.Var3(sig_idx), coords.Var4(sig_idx)...
-        , A_corr(sig_idx), [], elec_labels(sig_idx));
+     subj_node_file = [r_dir, 'subj', subj, '/D_mag_', feat_type, '.node'];
+     write_bv_node( subj_node_file, coords.Var2(sig_idx), coords.Var3(sig_idx), coords.Var4(sig_idx)...
+         , D_corr(sig_idx), [], elec_labels(sig_idx));
     
-    subj_node_file = [r_dir, 'subj', subj, '/G_', feat_type, '.node'];
-    write_bv_node( subj_node_file, coords.Var2(sig_idx), coords.Var3(sig_idx), coords.Var4(sig_idx)...
-        , G_corr(sig_idx), [], elec_labels(sig_idx));
+    subj_node_file = [r_dir, 'subj', subj, '/D_', feat_type, '.node'];
+    write_bv_node( subj_node_file, coords.Var2(sig_null_idx), coords.Var3(sig_null_idx), coords.Var4(sig_null_idx)...
+        , D_corr(sig_null_idx), [], elec_labels(sig_null_idx));
     
     % plot
     BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
@@ -234,20 +244,20 @@ if flag
         ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/A_hat_brain_', feat_type, '.jpg']);
     
     
-    BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
-        [r_dir, 'subj', subj, '/A_', feat_type, '.node'],[r_dir, 'rsa_corr.mat'], ...
-        ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/A_brain_', feat_type, '.jpg']);
+     BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
+         [r_dir, 'subj', subj, '/D_mag_', feat_type, '.node'],[r_dir, 'rsa_corr.mat'], ...
+         ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/D_mag_brain_', feat_type, '.jpg']);
+     
     
-    
     BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
-        [r_dir, 'subj', subj, '/G_', feat_type, '.node'],[r_dir, 'rsa_corr.mat'], ...
-        ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/G_brain_', feat_type, '.jpg']);
+        [r_dir, 'subj', subj, '/D_', feat_type, '.node'],[r_dir, 'rsa_corr.mat'], ...
+        ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/D_brain_', feat_type, '.jpg']);
 else
     [~,I] = max(A_corr);
     fprintf('Max A correlation at %s\n', elec_labels{I})
     
-    [~,I] = max(G_corr);
-    fprintf('Max G correlation at %s\n', elec_labels{I})
+    [~,I] = max(D_corr);
+    fprintf('Max D correlation at %s\n', elec_labels{I})
     
     [~,I] = max(A_hat_corr);
     fprintf('Max A_hat correlation at %s\n', elec_labels{I})

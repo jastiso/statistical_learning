@@ -14,9 +14,9 @@ clc
 addpath(genpath('/Users/stiso/Documents/MATLAB/ieeg-matlab-1.13.2/'))
 
 % define variables
-HUP_ID = 'HUP206';
-subj = '18';
-sess = '';
+HUP_ID = 'HUP201';
+subj = '12';
+sess = '1';
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 
 % save stuff
@@ -61,7 +61,7 @@ end
 % only run this if you get an error above
 
 if save_flag
-    st = 25145.61*srate;
+    st = 16161.11*srate;
     if ~isempty(sess)
         save([save_dir, subj, '/sess_', sess, 'start_time.mat'], 'st')
     else

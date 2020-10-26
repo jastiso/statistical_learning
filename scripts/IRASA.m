@@ -9,7 +9,7 @@ addpath(genpath('/Users/stiso/Documents/MATLAB/eeglab_current/'))
 removepath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/')) % this hides the built in "hann" function
 
 % define variables
-subj = '10';
+subj = '8';
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 img_dir = ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj];
