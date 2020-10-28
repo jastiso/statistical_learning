@@ -16,7 +16,7 @@ library(lm.beta)
 
 # add all betas for fixed effects
 order_beta = -20
-transition_beta = 20
+transition_beta = 11
 points_beta = -10
 finger_ind = -50
 finger_mid = -40

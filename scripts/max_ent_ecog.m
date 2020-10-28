@@ -16,8 +16,8 @@ data = readtable([save_dir, 'residuals.csv']);
 
 %% Get model
 
-subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'6'}, {'8'}, {'10'}, {'18'}];
-%subjs = [{'14'},{'18'}];
+subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'6'}, {'8'}, {'10'}, {'12'},{'18'}];
+subjs = [{'18'}];
 nSubj = numel(subjs);
 nNode = 10;
 beta = zeros(nSubj,1);

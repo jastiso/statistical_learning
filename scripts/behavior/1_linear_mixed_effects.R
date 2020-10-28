@@ -160,6 +160,7 @@ nuissance_reg = lmer(data=df_correct, rt~scale(log10(cum_trial)) + scale(log10(t
 recency_fact = lapply(df_correct$recency, f)
 df_correct$recency_fact = unlist(recency_fact)
 df_modular = filter(df_correct, is_lattice == 0)
+
 recency_data = data.frame( rt = resid(nuissance_reg), lag10 = df_correct$lag10, recency = df_correct$recency, graph = as.factor(df_correct$is_lattice), 
                            subj = df_correct$workerid, recency_fact = (unlist(recency_fact)))
 p = ggplot(data=recency_data, aes(y=rt, x=recency_fact, color = graph)) + geom_jitter(alpha=0.3) + theme_minimal()
@@ -214,7 +215,7 @@ anova(stat_surprisal1)
 summary(stat_surprisal1)
 
 # adding lag 10 - is it useful to include this with a random slope?
-stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(log10(recency_fact)) + 
+stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster +  stage_num + finger + hand + hand_transition + scale(log10(recency_fact)) + 
                          (1 + scale(log10(cum_trial))*is_crosscluster + scale(log10(recency_fact))|workerid))
 anova(stat_surprisal2)
 summary(stat_surprisal2)
@@ -260,7 +261,7 @@ anova(stat_prob)
 subjs = unique(df_modular$workerid)
 
 for (i in seq(1,10)){
-  subset_subj = sample(subjs, 7, replace=FALSE)
+  subset_subj = sample(subjs, 9, replace=FALSE)
   idx = unlist(lapply(df_modular$workerid, function(x) is.element(x, subset_subj)))
   tmp_df = df_correct[idx,]
   subset_stat = lmer(data=tmp_df, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 

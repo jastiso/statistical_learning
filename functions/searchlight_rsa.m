@@ -239,20 +239,28 @@ if flag
         , D_corr(sig_null_idx), [], elec_labels(sig_null_idx));
     
     % plot
+    try
     BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
         [r_dir, 'subj', subj, '/A_hat_', feat_type, '.node'],[r_dir, 'rsa_corr.mat'], ...
         ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/A_hat_brain_', feat_type, '.jpg']);
-    
-    
+    catch
+        fprintf('Error plotting brain map')
+    end
+    try
      BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
          [r_dir, 'subj', subj, '/D_mag_', feat_type, '.node'],[r_dir, 'rsa_corr.mat'], ...
          ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/D_mag_brain_', feat_type, '.jpg']);
-     
-    
+    catch
+        fprintf('Error plotting brain map')
+    end
+    try
     BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
         [r_dir, 'subj', subj, '/D_', feat_type, '.node'],[r_dir, 'rsa_corr.mat'], ...
         ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/D_brain_', feat_type, '.jpg']);
-else
+    catch
+        fprintf('Error plotting brain map')
+    end
+ else
     [~,I] = max(A_corr);
     fprintf('Max A correlation at %s\n', elec_labels{I})
     
