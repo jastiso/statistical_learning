@@ -223,7 +223,7 @@ end
 sig_idx = logical(sig_idx);
 sig_null_idx = logical(sig_null_idx);
 
-save([r_dir, 'subj' subj, '/searchlight_corrs.mat'], 'G_corr', 'A_corr', 'A_hat_corr', 'D_corr', 'sig_idx', 'sig_null_idx','perm_corr_null', 'perm_corr')
+save([r_dir, 'subj' subj, '/searchlight_corrs.mat'], 'G_corr', 'A_corr', 'A_hat_corr', 'D_corr', 'sig_idx', 'sig_nulliodx', 'perm_corr')
 
 % save node file
 sig_idx = logical(sig_idx);

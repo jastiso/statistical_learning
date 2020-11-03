@@ -203,3 +203,18 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(122/255,138/255,92/255), rgb(97/255,67/255,90/255))) +
   ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_graph.pdf', sep = ''))
 
+avg_acc = df_clean %>%
+  group_by(order, graph) %>%
+    dplyr::summarise(mean_acc = sum(correct_raw == 1)/length(correct_raw))
+
+nbin = 40
+bin_data_acc= data_frame(trial = c(tapply(avg_acc$order, cut(avg_acc$order, nbin), mean), 
+                                     tapply(avg_acc$order, cut(avg_acc$order, nbin), mean)),
+                           mean_acc = c(tapply(avg_acc$mean_acc, cut(avg_acc$order, nbin), mean), 
+                                       tapply(avg_acc$mean_acc, cut(avg_acc$order, nbin), mean)))
+                          
+plot = ggplot(data=bin_data_acc, aes(x=trial, y=mean_acc))
+plot + geom_line(size=1) + ggtitle('Accuracy') +
+  theme_minimal() + labs(x = 'Trial', y = 'Acc')
+  ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_acc.png', sep = ''))
+

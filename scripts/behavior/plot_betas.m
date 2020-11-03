@@ -20,10 +20,10 @@ for b = 1:numel(beta)
 end
 saveas(gca, [ieeg_dir, 'images/all_beta.png'], 'png')
 
-fprintf('\nMean for mTurk: %d std for mTurk %d', 10^(mean(log(beta_mturk(beta_mturk < 1000 & beta_mturk > 0)))), ...
-    10^(std(log(beta_mturk(beta_mturk < 1000 & beta_mturk > 0)))))
-fprintf('\nMean for iEEG: %d std for iEEG %d', 10^(mean(log(beta(beta < 1000 & beta > 0)))), ...
-    10^(std(log(beta(beta < 1000 & beta > 0)))))
+fprintf('\nMean for mTurk: %d std for mTurk %d', (mean((beta_mturk(beta_mturk < 1000 & beta_mturk > 0)))), ...
+    (std((beta_mturk(beta_mturk < 1000 & beta_mturk > 0)))))
+fprintf('\nMean for iEEG: %d std for iEEG %d', (mean((beta(beta < 1000 & beta > 0)))), ...
+    (std(log10(beta(beta < 1000 & beta > 0)))))
 fprintf('\nNo TD for mTurk: %d ', sum(~(beta_mturk < 1000 & beta_mturk > 0))/numel(beta_mturk))
 fprintf('\nNo TD for iEEG: %d ', sum(~(beta < 1000 & beta > 0))/numel(beta))
 
