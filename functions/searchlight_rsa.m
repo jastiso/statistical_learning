@@ -179,8 +179,8 @@ for e = 1:nElec
     D_corr(e) = corr(reshape(dist_mat(tri_mask),[],1), reshape(D(tri_mask),[],1));
     
     % test against permutation model
-    perm_corr = zeros(nSim,1);
-    perm_corr_null = zeros(nSim,1);
+    perm_corr = zeros(nSim,nElec);
+    perm_corr_null = zeros(nSim,nElec);
     for n = 1:nSim
        % pick random split
        split = 1;
@@ -208,17 +208,17 @@ for e = 1:nElec
        end
        D_perm = D_perm./N_perm;
        D_perm(logical(eye(nNode))) = NaN;
-       perm_corr(n) = corr(reshape(A_hat(tri_mask),[],1), reshape(D_perm(tri_mask),[],1));
-       perm_corr_null(n) = corr(reshape(dist_mat(tri_mask),[],1),reshape(D_perm(tri_mask),[],1));
+       perm_corr(n,e) = corr(reshape(A_hat(tri_mask),[],1), reshape(D_perm(tri_mask),[],1));
+       perm_corr_null(n,e) = corr(reshape(dist_mat(tri_mask),[],1),reshape(D_perm(tri_mask),[],1));
     end
     % test if empirical corr is greater than 95% percent of nulls
-    fprintf('\nFor subject %s, contact %s is more correlated than %d null models, visual sim was more correlated than %d', subj, elec, sum(A_hat_corr(e) < perm_corr), sum(D_corr(e) > perm_corr_null))
+    fprintf('\nFor subject %s, contact %s is more correlated than %d null models, visual sim was more correlated than %d', subj, elec, sum(A_hat_corr(e) < perm_corr(:,e)), sum(D_corr(e) > perm_corr_null(:,e)))
     figure(1); clf
-    histogram(perm_corr); hold on
+    histogram(perm_corr(:,e)); hold on
     plot([A_hat_corr(e), A_hat_corr(e)], [0,20], 'r')
     % update index of elecs
-    sig_idx(e) = sum(A_hat_corr(e) < perm_corr) >= (.95*nSim);
-    sig_null_idx(e) = sum(D_corr(e) > perm_corr_null) >= (0.95*nSim);
+    sig_idx(e) = sum(A_hat_corr(e) < squeeze(perm_corr(:,e))) >= (.95*nSim);
+    sig_null_idx(e) = sum(D_corr(e) > squeeze(perm_corr_null(:,e))) >= (0.95*nSim);
 end
 sig_idx = logical(sig_idx);
 sig_null_idx = logical(sig_null_idx);

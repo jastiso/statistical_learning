@@ -24,7 +24,7 @@ fprintf('\nMean for mTurk: %d std for mTurk %d', (mean((beta_mturk(beta_mturk < 
     (std((beta_mturk(beta_mturk < 1000 & beta_mturk > 0)))))
 fprintf('\nMean for iEEG: %d std for iEEG %d', (mean((beta(beta < 1000 & beta > 0)))), ...
     (std(log10(beta(beta < 1000 & beta > 0)))))
-fprintf('\nNo TD for mTurk: %d ', sum(~(beta_mturk < 1000 & beta_mturk > 0))/numel(beta_mturk))
+fprintf('\nNo TD for mTurk: %d ', sum((beta_mturk < 1000 & beta_mturk > 0))/numel(beta_mturk))
 fprintf('\nNo TD for iEEG: %d ', sum(~(beta < 1000 & beta > 0))/numel(beta))
 
 permtest(beta_mturk(beta_mturk < 1000 & beta_mturk > 0), beta(beta > 1000 & beta < 0))

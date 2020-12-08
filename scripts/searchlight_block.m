@@ -10,7 +10,7 @@ addpath(genpath('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/'))
 addpath(genpath('/Users/stiso/Documents/Code/graph_learning/functions/'))
 
 % define variables
-subjs = [ {'4'},{'8'},{'10'}]%{'2'}, {'3'}, {'4'}, {'6'}, {'8'}, {'10'}, {'12'}];
+subjs = [ {'1'},{'2'},{'3'},{'4'},{'8'},{'10'}]%{'2'}, {'3'}, {'4'}, {'6'}, {'8'}, {'10'}, {'12'}];
 feature = 'lfp'; % pow or lfp
 freqs = logspace(log10(3), log10(150), 50);
 nBlock = 2;
@@ -206,7 +206,38 @@ for subj_idx = 1:numel(subjs)
             A_corr(e,b) = corr(reshape(A(tri_mask),[],1), reshape(D(tri_mask),[],1));
             A_hat_corr(e,b) = corr(reshape(A_hat(tri_mask),[],1), reshape(D(tri_mask),[],1));
             N_corr(e,b) = corr(reshape(D_null(tri_mask), [], 1), reshape(D(tri_mask),[],1));
+            
+            
         end
+        %% MDS
+        feats = feats(:,sig_idx,:);
+        feats = reshape(feats, nTrial, sum(sig_idx)*size(feats,3), []);
+        
+        D = zeros(nNode);
+        N = zeros(nNode);
+        % leave one out cv
+        k = nTrial;
+
+        for i = 1:k
+
+            % split
+            train = true(nTrial,1);
+            train(i) = false;
+            test = ~train;
+
+            % get dist
+            [d,m] = get_rdm(feats, train, test, good_walk, nNode);
+            D = D + d;
+            N = N + m;
+        end
+        D = D./N;
+        D(logical(eye(nNode))) = 0;
+        [Y, ~] = cmdscale(D,2);
+
+        figure(2); clf
+        scatter(Y(:,1), Y(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
+        title([subj, ' block', num2str(b)])
+        saveas(gca, [img_dir, '/MDS_', feature, '_block', num2str(b), '.png'], 'png')
         
     end
     A_corr = A_corr(sig_idx,:);

@@ -145,8 +145,8 @@ for s = 1:numel(subjs)
     d_hat = squareform(pdist(Y));
     d_hat = nonzeros(triu(d_hat,1));
     stress = sqrt((sum(d_vect - d_hat)^2)/sum(d_vect.^2));
-    mod_dist = pdist([mean(Y(1:5,1)),mean(Y(1:5,2));mean(Y(6:end,1)),mean(Y(6:end,2))]);
+    mod_dist = pdist(mean(Y(1:5,1))
     
-    stresses(s) = mod_dist;
+    stresses(s) = stress;
     
 end

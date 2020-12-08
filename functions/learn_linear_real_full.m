@@ -26,7 +26,7 @@ function [beta, r0, r1, E, diff] = learn_linear_real_full(S, rt, trials)
 % Other model parameters:
 alpha = 1; % Ignore this parameter
 diffThreshold = 10^(-6); % Precision with which we learn beta parameter
-max_iter = 5000;
+max_iter = 20000;
 
 % Initialize beta parameter:
 beta = learn_linear_search_func(S, rt, trials);
@@ -35,13 +35,13 @@ beta = learn_linear_search_func(S, rt, trials);
 if abs(beta) == 0
     stepSize = .0000000001;
 elseif abs(beta) < .001
-    stepSize = .000001;
+    stepSize = .00001;
 elseif abs(beta) < .005
     stepSize = .00001;
 elseif abs(beta) < .01
     stepSize = .0001;
 elseif abs(beta) < .05
-    stepSize = .0005;
+    stepSize = .001;
 elseif abs(beta) < .1
     stepSize = .05;
 elseif abs(beta) < .5
