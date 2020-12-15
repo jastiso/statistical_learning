@@ -90,7 +90,6 @@ saveas(gca, [img_dir, 'ecog_betas.png'], 'png')
 
 %% Get A_hat in blocks
 
-load([save_dir, 'max_ent.mat'], 'beta')
 nBlock = 2;
 blocks = [1, 2; 3,4];
 A_hat_block = zeros(nBlock,nSubj,nNode,nNode);
@@ -133,12 +132,7 @@ for s = 1:nSubj
 end
 
 boxplot(log(mat_dist)')
-beta_block(beta_block > 1000) = 1000;
-beta_block(beta_block < 0) = 0;
-ahat_block_data = table([subjs,subjs]', [repmat(ones,nSubj,1);repmat(ones,nSubj,1)+1],...
-    [mat_dist(1,:)'; mat_dist(2,:)'], [beta_block(1,:)'; beta_block(2,:)'], [beta;beta], ...
-    'VariableNames', [{'subj'}, {'block'}, {'dist'}, {'beta_block'}, {'beta'}]);
-writetable(ahat_block_data, [r_dir, 'ahat_block.csv']);
+ahat_block_data = table('VariableNames', [{'subj'}, {'block'}, {'dist'}, {'beta_diff'}])
 
 %% Save A_hat contrast
 

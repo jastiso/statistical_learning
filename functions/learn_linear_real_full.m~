@@ -97,13 +97,9 @@ while t < max_iter && (t < 10 || diff > diffThreshold)
     beta = beta - db_new;
     
     if beta < 0
-        beta = 0;
         break;
     end
-    if beta >= 1000
-        beta = 1000;
-        break
-    end
+    if beta >
     
     % New beliefs:
     [B, dBdb] = belief_db_sequence2(S, T_full, beta, alpha);

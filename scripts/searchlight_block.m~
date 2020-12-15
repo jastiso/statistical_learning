@@ -49,8 +49,7 @@ center2 = [77,146,33]./255;
 cluster_colors = [trans1; within1; center1; within1; trans1; trans2; within2; center2; within2; trans2];
 
 % initialize for stats
-varnames = {'subj','space','block','elec','corr'};
-block_data = cell2table(cell(0,5), 'VariableNames',varnames);
+block_data = cell2table(cell(0,5), 'VariableNames',{'subj','space','block','elec','corr'});
 
 for subj_idx = 1:numel(subjs)
     subj = subjs{subj_idx};
@@ -250,10 +249,9 @@ for subj_idx = 1:numel(subjs)
     save([r_dir, 'subj' subj, '/searchlight_corrs_block.mat'], 'G_corr', 'A_corr', 'A_hat_corr')
     cnt = size(block_data,1) + 1;
     num = (sum(sig_idx)*nBlock*2);
-    block_data = [block_data; table(repmat({subj}, num,1), [repmat({'latent'}, sum(sig_idx),1); repmat({'euclid'}, sum(sig_idx,1),1);...
+    block_data(cnt:num,1) = [repmat({subj}, num,1), [repmat({'latent'}, sum(sig_idx),1); repmat({'euclid'}, sum(sig_idx,1),1);...
         repmat({'latent'}, sum(sig_idx),1); repmat({'euclid'}, sum(sig_idx,1),1)], num2cell([ones(num/2,1);ones(num/2,1)+1]),...
-        repmat(elec_labels(sig_idx,1), 4,1),num2cell([A_hat_corr(:,1); N_corr(:,1); A_hat_corr(:,2); N_corr(:,2)]),...
-        'VariableNames', varnames)];
+        repmat(elec_labels(sig_idx,1), 4,1),num2cell([A_hat_corr(:,1); N_corr(:,1); A_hat_corr(:,2); N_corr(:,2)])];
     
     %plot
     figure(1); clf
@@ -278,5 +276,3 @@ for subj_idx = 1:numel(subjs)
     %     title('G')
     %     saveas(gca, [img_dir, '/block_G.png'], 'png')
 end
-
-writetable(block_data,[r_dir, 'block_searchlight.csv'])

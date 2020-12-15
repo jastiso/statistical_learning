@@ -150,3 +150,14 @@ for s = 1:numel(subjs)
     stresses(s) = mod_dist;
     
 end
+
+beta = beta(cellfun(@(x) any(strcmp(x,subjs)), A_hat_order));
+mod_idx = cellfun(@(x) mod(str2double(x),2) == 0,subjs);
+stresses = stresses(mod_idx);
+beta = beta(mod_idx');
+stresses = stresses(beta ~= 0);
+beta = nonzeros(beta);
+figure(3); clf
+scatter(stresses,log(beta))
+
+[r,p] = corr(stresses', log(beta))
