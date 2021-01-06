@@ -88,51 +88,65 @@ xlabel('log( beta )')
 ylabel('Count')
 saveas(gca, [img_dir, 'ecog_betas.png'], 'png')
 
-%% Get A_hat in blocks
+%% Get A_hat time varying
 
-nBlock = 2;
-blocks = [1, 2; 3,4];
-A_hat_block = zeros(nBlock,nSubj,nNode,nNode);
-mat_dist = zeros(nBlock,nSubj);
-beta_block = zeros(nBlock,nSubj);
-
+plt=0;
+load([save_dir, 'max_ent.mat'], 'beta', 'A_hat')
+Ahat_seq = zeros(nNode*nNode,nSubj);
+Ahat_conv = cell(nSubj,1);
 for s = 1:nSubj
-    subj_data = data(data.subj==str2double(subjs{s}),:);
-    for b = 1:nBlock
-        curr = subj_data((subj_data.block == blocks(b,1)) | (subj_data.block == blocks(b,2)),:);
-        if mod(str2double(subjs{s}),2) == 0
-            A = M;
-        else
-            A = L;
-        end
-
-        rt = curr.resid;
-        trials = curr.order;
-
-        load([ephys_dir, subjs{s}, '/task_data.mat'])
-
-        [beta_block(b,s), r0(s), r1(s), E(s), diff(s)] = learn_linear_real_full(walk, rt, trials);
-
-        % get A_hat
-        A_hat_block(b, s, :, :) = (1 - exp(-beta_block(b,s)))*A*(eye(nNode) - exp(-beta_block(s))*A)^(-1);
-
-        figure(1); clf
-        imagesc(squeeze(A_hat_block(b,s,:,:))); colorbar
-        saveas(gca, [img_dir, 'A_hat_', num2str(s), '_', num2str(b), '.png'], 'png')
-        
-        a_block = squeeze(A_hat_block(b,s,:,:)) - diag(diag(squeeze(A_hat_block(b,s,:,:))));
-        a = squeeze(A_hat(s,:,:)) - diag(diag(squeeze(A_hat(s,:,:))));
-        try
-            mat_dist(b,s) = pdist([squareform(a_block);squareform(a)], 'euclidean');
-        catch
-            mat_dist(b,s) = norm(squareform(a));
-        end
-        
+    if ~exist([r_dir, 'subj', subjs{s}],'dir')
+       mkdir([r_dir, 'subj', subjs{s}]); 
     end
+    
+    % select subject
+    fprintf('\n************** Subj %s ************\n', subjs{s});
+    load([ephys_dir, subjs{s}, '/task_data.mat'])
+    curr_A = A_hat(s,:,:);
+    
+    %get ahat at every time point
+    [curr_seq] = Ahat_sequence(walk+1, beta(s));
+    
+    %optional visualization
+    if plt
+    for i = 1:size(curr_seq,3)
+        imagesc(curr_seq(:,:,i));
+        title(num2str(i));
+        pause(0.0001)
+    end
+    end
+    
+    %get similarity to final ahat
+    curr = data(data.subj==str2double(subjs{s}),:);
+    curr_v_seq = zeros(1,size(curr_seq,3));
+    for i = 1:size(curr_seq,3)
+        curr_v_seq(i) = corr(reshape(A_hat(s,:,:),[],1),reshape(curr_seq(:,:,i),[],1));
+    end
+    Ahat_conv{s} = [1:size(curr_seq,3);curr_v_seq];
 end
 
-boxplot(log(mat_dist)')
-ahat_block_data = table('VariableNames', [{'subj'}, {'block'}, {'dist'}, {'beta_diff'}])
+figure(1); clf
+all_trial = [];
+all_corr = [];
+all_subj = {}; all_beta = [];
+cnt = 1
+for s = 1:nSubj
+    if mod(str2double(subjs{s}),2) == 0
+        color = 'k';
+    else
+        color = 'r';
+    end
+   plot(Ahat_conv{s}(1,:),Ahat_conv{s}(2,:), color); hold on 
+   all_corr = [all_corr;Ahat_conv{s}(2,:)'];
+   all_trial = [all_trial;Ahat_conv{s}(1,:)'];
+   all_beta= [all_beta, repmat(beta(s), numel(Ahat_conv{s}(1,:)),1)];
+   all_subj(cnt:(cnt + numel(Ahat_conv{s}(1,:))-1)) = {subjs{s}};
+   cnt = cnt + numel(Ahat_conv{s}(1,:));
+end
+
+ahat_seq_data = table(all_subj, all_trial, all_corr, all_beta, ...
+    'VariableNames', [{'subj'}, {'trial'}, {'dist'}, {'beta'}]);
+writetable(ahat_block_data, [r_dir, 'ahat_seq.csv']);
 
 %% Save A_hat contrast
 

@@ -13,6 +13,8 @@ library(lm.beta)
 setwd("/Users/stiso/Documents/Code/graph_learning/ECoG_data/")
 
 df = read.csv('behavior_preprocessed/group_behavior.csv')
+demo = read.csv('behavioral_data_raw/demo.csv')
+df = merge(df, demo, by='subj')
 summary(df)
 
 
@@ -101,7 +103,7 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 # test if points makes a difference
 
 ## learn and graph
-stat_learn = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + typing_raw + hand_transition + scale(block) + points + scale(log(recency_fact)) + scale(sess) + (1 + scale(log10(order))*graph + scale(log(recency_fact)) |subj))
+stat_learn = lmer(data=df_correct, rt~scale(log10(order))*graph +sex + yob + finger + typing_raw + hand_transition + scale(block) + points + scale(log(recency_fact)) + scale(sess) + (1 + scale(log10(order))*graph + scale(log(recency_fact)) |subj))
 anova(stat_learn)
 
 # save residuals
@@ -109,17 +111,12 @@ df_correct$resid = resid(stat_learn)
 write.csv(df_correct, file = 'behavior_preprocessed/residuals.csv')
 
 
-## graph
-stat_graph = lmer(data=df_correct, rt~scale(log10(order))*graph + finger + points + typing_raw + hand_transition +  block + scale(log(recency_fact)) + sess + (1 + scale(log10(order))*graph|subj))
-anova(stat_graph)
-
-
 ### surprisal
-stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + typing_raw + finger + points + hand + hand_transition +  block + scale(log(recency_fact)) + sess + 
+stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + sex + yob + typing_raw + finger + points + hand + hand_transition +  block + scale(log(recency_fact)) + sess + 
                          (1 + scale(log10(order))*transition |subj))
 
 
-stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition + finger + points + typing_raw + hand + hand_transition + block + scale(log(recency_fact)) + sess + 
+stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition +sex + yob + finger + points + typing_raw + hand + hand_transition + block + scale(log(recency_fact)) + sess + 
                          (1 + scale(log10(order))*transition + scale(log(recency_fact)) |subj))
 # chi sq
 anova(stat_surprisal2, stat_surprisal1, test="Chisq")

@@ -205,9 +205,9 @@ for subj_idx = 1:numel(subjs)
             %% correlations
             
             % correlations
-            G_corr(e,b) = corr(reshape(G(tri_mask),[],1), reshape(D(tri_mask),[],1));
-            A_corr(e,b) = corr(reshape(A(tri_mask),[],1), reshape(D(tri_mask),[],1));
-            A_hat_corr(e,b) = corr(reshape(A_hat(tri_mask),[],1), reshape(D(tri_mask),[],1));
+            G_corr(e,b) = 1-corr(reshape(G(tri_mask),[],1), reshape(D(tri_mask),[],1));
+            A_corr(e,b) = 1-corr(reshape(A(tri_mask),[],1), reshape(D(tri_mask),[],1));
+            A_hat_corr(e,b) = 1-corr(reshape(A_hat(tri_mask),[],1), reshape(D(tri_mask),[],1));
             N_corr(e,b) = corr(reshape(D_null(tri_mask), [], 1), reshape(D(tri_mask),[],1));
             
             
