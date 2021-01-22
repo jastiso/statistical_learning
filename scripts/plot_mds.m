@@ -10,7 +10,7 @@ save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 
 
-subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'8'}, {'10'}, {'12'}];
+subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'8'}, {'10'}, {'12'}];
 feat_type = 'lfp';
 A_hat_order = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'8'}, {'10'},{'12'},{'18'}];
 load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/behavior_preprocessed/max_ent.mat', 'A_hat', 'beta')

@@ -173,9 +173,9 @@ for e = 1:nElec
     saveas(gca, [img_dir, '/MDS_', feat_type, '_', elec, '.png'], 'png')
     
     % correlations
-    G_corr(e) = corr(reshape(G(tri_mask),[],1), reshape(D(tri_mask),[],1));
-    A_corr(e) = corr(reshape(A(tri_mask),[],1), reshape(D(tri_mask),[],1));
-    A_hat_corr(e) = 1 - corr(reshape(A_hat(tri_mask),[],1), reshape(D(tri_mask),[],1));
+    G_corr(e) = -corr(reshape(G(tri_mask),[],1), reshape(D(tri_mask),[],1));
+    A_corr(e) = -corr(reshape(A(tri_mask),[],1), reshape(D(tri_mask),[],1));
+    A_hat_corr(e) =  -corr(reshape(A_hat(tri_mask),[],1), reshape(D(tri_mask),[],1));
     D_corr(e) = corr(reshape(dist_mat(tri_mask),[],1), reshape(D(tri_mask),[],1));
     
     % test against permutation model
@@ -208,7 +208,7 @@ for e = 1:nElec
        end
        D_perm = D_perm./N_perm;
        D_perm(logical(eye(nNode))) = NaN;
-       perm_corr(n,e) = 1 - corr(reshape(A_hat(tri_mask),[],1), reshape(D_perm(tri_mask),[],1));
+       perm_corr(n,e) = - corr(reshape(A_hat(tri_mask),[],1), reshape(D_perm(tri_mask),[],1));
        perm_corr_null(n,e) = corr(reshape(dist_mat(tri_mask),[],1),reshape(D_perm(tri_mask),[],1));
     end
     % test if empirical corr is greater than 95% percent of nulls

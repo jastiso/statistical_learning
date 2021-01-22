@@ -11,7 +11,7 @@ addpath(genpath('/Users/stiso/Documents/Code/graph_learning/functions/'))
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 
-subj = [{'1'}, {'2'}, {'3'}, {'4'}, {'8'}, {'10'}, {'12'}];
+subj = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'8'}, {'10'}, {'12'}];
 nSim = 100;
 feat_type = 'lfp';
 flag = 'all';
@@ -86,17 +86,15 @@ all_reg_d = {};
 subj_list = []; subjd = [];
 cnt = 1; cntd = 1;
 for s = 1:numel(subj)
-    if ~strcmp(subj{s}, '12')
-        load([save_dir, subj{s}, '/header_clean.mat'], 'regions')
-        load([r_dir, 'subj' subj{s}, '/searchlight_corrs.mat'], 'sig_idx', 'sig_null_idx')
+    load([save_dir, subj{s}, '/header_clean.mat'], 'regions')
+    load([r_dir, 'subj' subj{s}, '/searchlight_corrs.mat'], 'sig_idx', 'sig_null_idx')
 
-        all_reg(cnt:(cnt+sum(sig_idx)-1),1) = regions(sig_idx);
-        all_reg_d(cntd:(cntd+sum(sig_null_idx)-1),1) = regions(sig_null_idx);
-        subj_list = [subj_list; repmat(str2double(subj{s}), sum(sig_idx),1)];
-        subjd = [subjd; repmat(str2double(subj{s}), sum(sig_null_idx),1)];
-        cnt = cnt + sum(sig_idx);
-        cntd = cntd + sum(sig_null_idx);
-    end
+    all_reg(cnt:(cnt+sum(sig_idx)-1),1) = regions(sig_idx);
+    all_reg_d(cntd:(cntd+sum(sig_null_idx)-1),1) = regions(sig_null_idx);
+    subj_list = [subj_list; repmat(str2double(subj{s}), sum(sig_idx),1)];
+    subjd = [subjd; repmat(str2double(subj{s}), sum(sig_null_idx),1)];
+    cnt = cnt + sum(sig_idx);
+    cntd = cntd + sum(sig_null_idx);
 end
 
 searchlight_regions = table([subj_list; subjd], [repmat('latent', numel(all_reg),1); ...
