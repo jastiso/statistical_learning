@@ -80,56 +80,103 @@ for i = 1:numel(sessions)
 end
 
 %% Get ictal spikes
-
+% doing this using algorithm from Kate's paper
+min_chan = 4; % minimum number of channels that need to be recruited
+win = 0.05; % size of the window to look for the minimum number of channels, in seconds
+seq = 0.015; % 15ms for spikes within a sequence, taken from Erin Conrads Brain paper
+thr = 0.002; % reject spike if they spread to a lot of channels in less than 2ms (larger than paper), also from Erins paper
 out_all = struct('sess', []);
 marker_all = struct('sess', []);
+discharge_tol=0.005;
 
 for s = 1:numel(sessions)
-    [out,MARKER] = spike_detector_hilbert_v16_byISARG(data_all(s).sess', srate);
-    
-    % select for only spikes in many channels
-    win = 0.05;
-    min_chan = 4;
-    nSamp = size(MARKER.d,1);
-    nSpike = numel(out.pos);
-    kept_spike = false(size(out.pos));
-    all_soz = []; % when I get SOZ channels, change this
-    discharge_tol=0.005; % taken from spike function
-    
-    
-    for i = 1:nSpike
-        curr_pos = out.pos(i);
-        curr_chan = out.chan(i);
-        
-        if kept_spike(i) == 0
-            win_spike = (out.pos > curr_pos & out.pos < curr_pos + win);
-            win_chan = out.chan(win_spike);
-            
-            if ~isempty(all_soz) % eventually we want only spikes that generalize to other channels
-                if sum(intersect(win_chan,all_soz)) >= min_chan
-                    kept_spike(win_spike) = true;
-                end
-            else
-                if sum(unique(win_chan)) >= min_chan+1 % if not SOZ marked have slightly stricter cutoff
-                    kept_spike(win_spike) = true;
-                end
+    [out,MARKER] = ...
+spike_detector_hilbert_v16_byISARG(data_all(s).sess', srate);
+% sort spikes by onset
+[sort_pos,I] = sort(out.pos, 'ascend');
+out.pos = sort_pos;
+out.chan = out.chan(I);
+out.con = out.con(I);
+out.dur = out.dur(I);
+out.weight = out.weight(I);
+out.pdf = out.pdf(I);
+out.seq = nan(size(out.pos));
+seq_cnt = 0; % counter for sequences, you can reset it here because the same number will never be in the same 1s window later on
+
+% eliminate some spikes
+include_length = win;
+nSamp = size(MARKER.d,1);
+nSpike = numel(out.pos);
+kept_spike = false(size(out.pos));
+
+for i = 1:nSpike
+curr_pos = out.pos(i);
+
+if kept_spike(i) == 0
+    win_spike = (out.pos > curr_pos & out.pos < (curr_pos + win));
+    % add spikes within 15ms of the
+    % last one
+    last_spike = max(out.pos(win_spike));
+    curr_sum = 0;
+    while curr_sum < sum(win_spike) % stop when you stop adding new spikes
+        curr_sum = sum(win_spike);
+        win_spike = win_spike | (out.pos > last_spike & out.pos < (last_spike + seq));
+        last_spike = max(out.pos(win_spike));
+    end
+    win_chan = out.chan(win_spike);
+
+    % set sequence ID for all spikes
+    % in this window
+    seqs = struct('idx',[],'chan',[]);
+    if sum(win_spike) > 0
+        [~,leader_idx] = min(out.pos(win_spike));
+        leader = win_chan(leader_idx);
+        if sum(win_chan == leader) == 1
+            out.seq(win_spike) = seq_cnt;
+            seqs(1).idx = find(win_spike);
+            seqs(1).chan = win_chan;
+            seq_cnt = seq_cnt + 1;
+        else
+            % parse sequence at the
+            % leader.
+            end_pts = find(win_chan == leader);
+            end_pts = [end_pts; numel(win_chan) + 1];
+            win_idx = find(win_spike);
+            for m = 1:(numel(end_pts)-1)
+                seqs(m).chan = win_chan(end_pts(m):(end_pts(m+1)-1));
+                seqs(m).idx = win_idx(end_pts(m):(end_pts(m+1)-1));
+                out.seq(seqs(m).idx) = seq_cnt;
+                seq_cnt = seq_cnt + 1;
             end
         end
     end
-    % slect only good spikes
-    out_clean.pos = out.pos(kept_spike);
-    out_clean.dur = out.dur(kept_spike);
-    out_clean.chan = out.chan(kept_spike);
-    out_clean.weight = out.weight(kept_spike);
-    out_clean.con = out.con(kept_spike);
-    fprintf('Found %d spikes\n"', sum(kept_spike));
-    
-    % get new M
-    m_clean = zeros(size(MARKER.M));
-    for i=1:size(out_clean.pos,1)
-        m_clean(round(out_clean.pos(i)*MARKER.fs:out_clean.pos(i)*MARKER.fs+discharge_tol*MARKER.fs),...
-            out_clean.chan(i))=out_clean.con(i);
+    % for each sequence, remove events that generalize
+    % to 80% of elecs within 2ms,
+    % keep if it spread to at least
+    % 3 channels
+    for m = 1:numel(seqs)
+        time_between = diff(out.pos(seqs(m).idx));        
+        if (numel(unique(seqs(m).chan)) >= min_chan) && ~(numel(unique(seqs(m).chan(time_between <= thr))) >= numel(elec_labels)*.5)
+            kept_spike(seqs(m).idx) = true;
+        end
     end
+end
+end
+% select only good spikes
+out_clean.pos = out.pos(kept_spike);
+out_clean.dur = out.dur(kept_spike);
+out_clean.chan = out.chan(kept_spike);
+out_clean.weight = out.weight(kept_spike);
+out_clean.con = out.con(kept_spike);
+out_clean.seq = out.seq(kept_spike);
+fprintf('This dataset had %d IEDs\n', numel(kept_spike))
+
+% get new M
+m_clean = zeros(size(MARKER.M));
+for i=1:size(out_clean.pos,1)
+m_clean(round(out_clean.pos(i)*MARKER.fs:out_clean.pos(i)*MARKER.fs+discharge_tol*MARKER.fs),...
+    out_clean.chan(i))=out_clean.con(i);
+end
     MARKER.m_clean = m_clean;
     
     out_all(s).sess = out_clean;
@@ -140,25 +187,32 @@ end
 eegplot(marker_all(1).sess.d', 'srate', MARKER.fs)
 eegplot(marker_all(1).sess.m_clean', 'srate', MARKER.fs)
 
-
 save([save_dir, subj, '/data_clean.mat'], 'data_all')
 save([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj', 'regions', 'sessions')
 
 %% Get extra event fields
 
-% get concatenated events
-load([save_dir, subj, '/events.mat']); % in samples
+load([save_dir, subj, '/events.mat']) % in samples
+load([save_dir, subj, '/task_data.mat'])
 
-load([save_dir, subj, '/task_data.mat']) % should already have both sessions
-
-nTrial = size(walk,2);
+nTrial = size(events,1);
 trans_nodes = [4,5,9,0];
 module0 = [0 1 2 3 4];
 module1 = [5 6 7 8 9];
 
+% get trials with IEDs
+ictal_trials = zeros(1,nTrial);
+for i = 1:nTrial
+    if any((out_clean.pos > (events(i,1)/srate)) & (out_clean.pos < (events(i,2)/srate)))
+        ictal_trials(i) = 1;
+    else
+        ictal_trials(i) = 0;
+    end
+end
+
 %get only good trials
-good_trials = logical(correct) & cutoff;
-good_events = events(good_trials,:);
+good_trials = logical(correct) & cutoff & ~ictal_trials;
+good_events = events(logical(correct) & cutoff & ~ictal_trials,:);
 
 trans_idx = false(nTrial,1);
 for i = 2:nTrial
@@ -173,20 +227,18 @@ prev_mod = any(find(walk(1) == module1)); % flag for which module we're in
 for i = 2:nTrial
     curr_mod = any(find(walk(i) == module1));
     if prev_mod == curr_mod
-        module_idx(i) = module_idx(i-1) + 1;
+       module_idx(i) = module_idx(i-1) + 1; 
     else
-        module_idx(i) = 0;
+       module_idx(i) = 0; 
     end
     prev_mod = curr_mod;
 end
 
 % match to events
-trans_idx = trans_idx(logical(correct) & cutoff);
-module_idx = module_idx(logical(correct) & cutoff);
-% save walk with ECoG data, for most people this will just be the full walk
-rec_walk = walk(1:514);
+trans_idx = trans_idx(logical(correct) & cutoff & ~ictal_trials);
+module_idx = module_idx(logical(correct) & cutoff & ~ictal_trials);
 
-save([save_dir, subj, '/good_events.mat'], 'good_events', 'trans_idx', 'module_idx', 'good_trials', 'rec_walk');
+save([save_dir, subj, '/good_events.mat'], 'good_events', 'trans_idx', 'module_idx', 'good_trials', 'ictal_trials');
 
 %% Get into fieldtrip format
 
