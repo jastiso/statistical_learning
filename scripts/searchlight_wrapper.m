@@ -12,8 +12,7 @@ save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 
 % define variables
-%subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'8'},{'10'}, {'12'}, {'6'}];
-subjs = [{'12'}];
+subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'8'},{'10'}, {'12'}];
 A_hat_order = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'8'}, {'10'},{'12'},{'18'}];
 feat_type = 'lfp'; % pow or lfp
 freqs = logspace(log10(3), log10(150), 50);
@@ -28,7 +27,7 @@ cluster_colors = [trans1; within1; center1; within1; trans1; trans2; within2; ce
 
 get_stim_mapping(subjs)
 
-for s = 1:numel(subjs)
+parfor s = 1:numel(subjs)
 
     subj = subjs{s};
     subj_idx = find(cellfun(@(x) strcmp(subj,x),A_hat_order));

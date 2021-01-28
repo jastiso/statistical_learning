@@ -81,6 +81,7 @@ BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/Surf
 %% Regions barplot
 
 % for each subject, load regions and sig_idx
+if strcmp(flag, 'all')
 all_reg = {};
 all_reg_d = {};
 subj_list = []; subjd = [];
@@ -100,4 +101,5 @@ end
 searchlight_regions = table([subj_list; subjd], [repmat('latent', numel(all_reg),1); ...
     repmat('euclid', numel(all_reg_d),1)], [all_reg; all_reg_d], 'VariableNames', {'subj', 'space', 'region'});
 writetable(searchlight_regions, [r_dir, 'searchlight_regions.csv'])
+end
    
