@@ -24,9 +24,9 @@ cluster_colors = [trans1; within1; within1; within1; trans1; trans2; within2; wi
 mid_blue = [108,111,147]./255;
 dark_blue = [87,89,117]./255;
 light_blue = [196,198,212]./255;
-ring_colors = [linspace(0, dark_blue(1), 5)'; linspace(mid_blue(1), light_blue(1), 5)',...
-    linspace(0, dark_blue(2), 5)'; linspace(mid_blue(2), light_blue(2), 5)',...
-    linspace(0, dark_blue(3), 5)'; linsapce(mid_blue(3), light_blue(3), 5)'];
+ring_colors = [[linspace(0, dark_blue(1), 5)'; linspace(mid_blue(1), light_blue(1), 5)'],...
+  [  linspace(0, dark_blue(2), 5)'; linspace(mid_blue(2), light_blue(2), 5)'],...
+   [ linspace(0, dark_blue(3), 5)'; linspace(mid_blue(3), light_blue(3), 5)']];
 
 for s = 1:numel(subjs)
     subj = subjs{s};
@@ -156,11 +156,17 @@ end
 
 beta = beta(cellfun(@(x) any(strcmp(x,subjs)), A_hat_order));
 mod_idx = cellfun(@(x) mod(str2double(x),2) == 0,subjs);
+subjs = subjs(mod_idx);
 stresses = stresses(mod_idx);
 beta = beta(mod_idx');
 stresses = stresses(beta ~= 0);
+subjs = subjs(beta ~= 0);
 beta = nonzeros(beta);
 figure(3); clf
-scatter(stresses,log(beta))
+scatter(log(beta), stresses)
 
-[r,p] = corr(stresses', log(beta), 'type','pearson')
+[r,p] = corr(log(beta), stresses', 'type','pearson')
+
+ahat_seq_data = table(subjs', stresses', beta, ...
+    'VariableNames', [{'subj'}, {'module_dist'}, {'beta'}]);
+writetable(ahat_seq_data, [r_dir, 'mod_dist.csv']);

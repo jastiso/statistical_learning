@@ -148,7 +148,7 @@ for s = 1:numel(subjs)
     d_hat = squareform(pdist(Y));
     d_hat = nonzeros(triu(d_hat,1));
     stress = sqrt((sum(d_vect - d_hat)^2)/sum(d_vect.^2));
-    mod_dist = pdist([mean(Y(1:5,1)),mean(Y(1:5,2));mean(Y(6:end,1)),mean(Y(6:end,2))]);
+    mod_dist = pdist([mean(Y(2:4,1)),mean(Y(2:4,2));mean(Y(7:9,1)),mean(Y(7:9,2))]);
     
     stresses(s) = mod_dist;
     
@@ -156,11 +156,17 @@ end
 
 beta = beta(cellfun(@(x) any(strcmp(x,subjs)), A_hat_order));
 mod_idx = cellfun(@(x) mod(str2double(x),2) == 0,subjs);
-%stresses = stresses(mod_idx);
-%beta = beta(mod_idx');
+subjs = subjs(mod_idx);
+stresses = stresses(mod_idx);
+beta = beta(mod_idx');
 stresses = stresses(beta ~= 0);
+subjs = subjs(beta ~= 0);
 beta = nonzeros(beta);
 figure(3); clf
-scatter(stresses,log(beta))
+scatter(log(beta), stresses)
 
-[r,p] = corr(stresses', log(beta), 'type','pearson')
+[r,p] = corr(log(beta), stresses', 'type','pearson')
+
+ahat_seq_data = table(subjs', stresses', beta, ...
+    'VariableNames', [{'subj'}, {'module_dist'}, {'beta'}]);
+writetable(ahat_seq_data, [r_dir, 'mod_dist.csv']);

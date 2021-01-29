@@ -85,7 +85,7 @@ for i = 1:nGraph
         figure(2); clf
         scatter(Y(:,1), Y(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
         if strcmp(graphs{i},'mod')
-            module_sep{j} = pdist([mean(Y(1:5,1)),mean(Y(1:5,2));mean(Y(6:end,1)),mean(Y(6:end,2))]);
+            module_sep{j} = pdist([mean(Y(2:4,1)),mean(Y(2:4,2));mean(Y(7:9,1)),mean(Y(7:9,2))]);
         end
         
         % Use all pairs heuristic:
@@ -146,11 +146,11 @@ saveas(gca, [img_dir, 'compressibility.png']);
 
 
 figure(2); clf
-plot(log10(test_betas), [measures_struce.mod_module_sep{:}], 'linewidth', 2); hold on
+plot(log10(test_betas), [measures_struct.mod_module_sep{:}], 'linewidth', 2); hold on
 for b = 1:numel(beta)
     if (mod(str2double(subjs{b}),2) == 0) && (str2double(subjs{b}) ~= 6)
         plot([log10(beta(b)), log10(beta(b))],...
-            [min([measures_struce.mod_module_sep{:}]),max([measures_struce.mod_module_sep{:}])], 'r');
+            [min([measures_struct.mod_module_sep{:}]),max([measures_struct.mod_module_sep{:}])], 'r');
     end
 end
 

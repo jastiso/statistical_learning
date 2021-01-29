@@ -97,3 +97,13 @@ p = ggplot(data=dplyr::filter(df_avg, space == 'latent'), aes(x=mean_corr, y=(me
   geom_point(size=3) + 
   theme_minimal() #+ scale_color_manual(values=brewer.pal(2,'OrRd'))
 p
+
+##########################################################
+df = read.csv('ephys_analysis/mod_dist.csv')
+demo = read.csv('behavioral_data_raw/demo.csv')
+demo$subj = as.factor(demo$subj)
+df = merge(df, demo, by='subj')
+summary(df)
+
+stat = lm(data=df, module_dist~log10(beta))
+summary(stat)
