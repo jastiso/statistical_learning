@@ -105,5 +105,5 @@ demo$subj = as.factor(demo$subj)
 df = merge(df, demo, by='subj')
 summary(df)
 
-stat = lm(data=df, module_dist~log10(beta))
+stat = lm(data=df, module_dist~log10(beta)+sex+yob)
 summary(stat)
