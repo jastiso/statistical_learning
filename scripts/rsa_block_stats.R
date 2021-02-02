@@ -40,7 +40,7 @@ p = ggplot(data=df_avg, aes(x=block, y=mean_corr, color=space, group=uniqueid)) 
   geom_line(aes(color=space),position=pd) + geom_point(aes(color=space),size=3, position=pd) + 
   theme_minimal() + scale_color_manual(values=c('grey','gold'))
 p
-ggsave("ephys_img/block_rsa.pdf",p)
+ggsave("ephys_img/block_rsa.eps",p)
 
 
 ############################################# Ahat

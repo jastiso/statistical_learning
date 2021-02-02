@@ -183,7 +183,7 @@ ggsave(paste( 'experiment/data/preprocessed/images/recency_avg.png', sep = ''))
 
 ### Learning
 # add *is lattice to trial if you have multiple graphs
-stat_learn = lmer(data=df_correct, rt~scale(log10(cum_trial)) + scale(log10(trial)) + finger + hand + hand_transition + stage_num + scale(log(recency_fact)) + 
+stat_learn = lmer(data=df_correct, rt~scale(log10(cum_trial))*is_lattice + stage_num*is_lattice + finger + hand + hand_transition + scale(log(recency_fact)) + 
                                         (1 + scale(log10(cum_trial)) + scale(log(recency_fact))|workerid))
 anova(stat_learn)
 
@@ -198,18 +198,10 @@ max_ent_data$resid = resid(stat_learn)
 write.csv(max_ent_data, file = 'data/preprocessed/residuals.csv')
 
 
-
-### Graph
-contrasts(df_correct$is_lattice) <- contr.helmert(2)/2
-stat_graph = lmer(data=df_correct, rt~scale(cum_trial)*is_lattice + scale(log10(trial)) + finger + hand + hand_transition + stage_num + scale(lag10) + 
-                    (1 + scale(cum_trial)*is_lattice|workerid))
-anova(stat_graph)
-
-
 ### Modular
 # change to df modular if multiple graphs
 # most basic
-stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + 
+stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + stage_num + finger + hand + hand_transition + 
                         (1 + scale(log10(cum_trial))*is_crosscluster|workerid))
 anova(stat_surprisal1)
 summary(stat_surprisal1)
@@ -235,23 +227,6 @@ stat_acc = glmer(data=df_modular_acc, correct~scale(cum_trial)*is_crosscluster +
                  family = binomial(link = "logit"))
 anova(stat_acc)
 
-
-
-## Communicability
-contrasts(df_correct$hand_transition) <- contr.helmert(2)/2
-contrasts(df_correct$hand) <- contr.helmert(2)/2
-df_correct$communicability = as.factor(df_correct$communicability)
-contrasts(df_correct$communicability) <- contr.helmert(5)
-contrasts(df_correct$finger) <- contr.helmert(5)
-stat_comm = lmer(data=df_correct, rt~scale(cum_trial)*(communicability) + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
-                   (1 + scale(cum_trial)*(communicability)|workerid))
-anova(stat_comm)
-
-
-# probability
-stat_prob = lmer(data=df_correct, rt~scale(cum_trial)*probability + is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
-                        (1 + scale(cum_trial)*probability + is_crosscluster + scale(lag10) |workerid))
-anova(stat_prob)
 
 
 ##################
@@ -288,7 +263,7 @@ mean(ps)
 
 avg_data = df_correct %>%
   group_by(cum_trial, keyCode) %>%
-  dplyr::summarise(mean_rt = mean(rt), sd_rt = sd(rt))
+  dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
 
 plot = ggplot(data=avg_data, aes(x=cum_trial, y=mean_rt, color=keyCode))
 plot + geom_line(size=1) + ggtitle('RT over time, by Finger') +
@@ -309,16 +284,16 @@ ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_cc', ext,'.png', sep
 
 avg_graph = df_correct %>%
   group_by(cum_trial, is_lattice) %>%
-  dplyr::summarise(mean_rt = mean(rt), sd_rt = sd(rt))
+  dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
 
 plot = ggplot(data=avg_graph, aes(x=cum_trial, y=mean_rt, color=is_lattice))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   theme_minimal() + scale_color_manual(values = (wes_palette("Royal2"))) + labs(x = 'Trial', y = 'RT (ms)')
-ggsave(paste( 'data/preprocessed/images/rt_mTurk_graph', ext,'.png', sep = ''))
+ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_graph', ext,'.pdf', sep = ''))
 
 avg_rt = df_correct %>%
   group_by(cum_trial) %>%
-  dplyr::summarise(mean_rt = mean(rt), sd_rt = sd(rt))
+  dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
 
 plot = ggplot(data=avg_rt, aes(x=cum_trial, y=mean_rt))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
@@ -328,7 +303,7 @@ ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk', ext,'.png', sep = 
 
 avg_prob = df_correct %>%
   group_by(cum_trial, probability) %>%
-  dplyr::summarise(mean_rt = mean(rt), sd_rt = sd(rt))
+  dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
 
 plot = ggplot(data=avg_prob, aes(x=cum_trial, y=mean_rt, color=as.factor(probability)))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
@@ -353,15 +328,31 @@ nbin = 40
 bin_data = data_frame(trial = tapply(avg_rt$cum_trial, cut(avg_rt$cum_trial, nbin), mean), mean_rt = tapply(avg_rt$mean_rt, cut(avg_rt$cum_trial, nbin), mean))
 
 plot = ggplot(data=bin_data, aes(x=trial, y=mean_rt))
-plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
+plot + geom_line(size=1) + ggtitle('RT over time') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)')  
 ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_bin', ext,'.png', sep = ''))
 
 
 plot = ggplot(data=avg_rt, aes(x=cum_trial, y=mean_rt))
-plot + geom_point() + geom_smooth(method='lm') + ggtitle('RT over time, by Graph') +
+plot + geom_point() + geom_smooth(method='lm') + ggtitle('RT over time') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)')
 ggsave(paste( 'data/preprocessed/images/rt_mTurk_scatter', ext,'.png', sep = ''))
+
+
+## Graph
+nbin = 40
+bin_data_graph= data_frame(trial = c(tapply(avg_graph$cum_trial, cut(avg_graph$cum_trial, nbin), mean), 
+                                     tapply(avg_graph$cum_trial, cut(avg_graph$cum_trial, nbin), mean)),
+                           mean_rt = c(tapply(filter(avg_graph, is_lattice == 0)$mean_rt, cut(filter(avg_graph, is_lattice == 0)$cum_trial, nbin), mean), 
+                                       tapply(filter(avg_graph, is_lattice == 1)$mean_rt, cut(filter(avg_graph, is_lattice == 1)$cum_trial, nbin), mean)),
+                           transition = c(rep("modular", times = length(tapply(avg_graph$cum_trial, cut(avg_graph$cum_trial, nbin), mean))), 
+                                          rep("lattice", times = length(tapply(avg_graph$cum_trial, cut(avg_graph$cum_trial, nbin), mean)))))
+
+
+plot = ggplot(data=bin_data_graph, aes(x=trial, y=mean_rt/1000, color = transition))
+plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
+  theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))
+ggsave(paste( 'experiment/data/preprocessed/images/rt_bin_graph.pdf', sep = ''))
 
 
 # cross_cluster
@@ -376,7 +367,7 @@ bin_data_cluster = data_frame(trial = c(tapply(avg_cluster$cum_trial, cut(avg_cl
 
 
 plot = ggplot(data=bin_data_cluster, aes(x=trial, y=mean_rt, color = is_crosscluster))
-plot + geom_line(size=1) + ggtitle('RT over time, by transition') +
+plot + geom_line(size=1) + ggtitle('RT over time, by transition') + 
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(215/255,190/255,123/255), rgb(33/255,67/255,104/255))) 
   ggsave(paste( 'experiment/data/preprocessed/images/resid_mTurk_bin_cc', ext,'.pdf', sep = ''))
   
