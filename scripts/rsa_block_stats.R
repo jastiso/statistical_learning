@@ -107,3 +107,9 @@ summary(df)
 
 stat = lm(data=df, module_dist~log10(beta)+sex+yob)
 summary(stat)
+
+p = ggplot(data = df, aes(x=log10(beta), y=module_dist)) + 
+  geom_smooth(method='lm', color='black') + geom_point(size=5, color=rgb(125/255,138/255,95/255)) + 
+  theme_minimal()
+p
+ggsave("ephys_img/mod_dist_neur.pdf",p)
