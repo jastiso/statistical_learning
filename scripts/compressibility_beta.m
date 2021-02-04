@@ -4,6 +4,7 @@
 clear
 
 addpath(genpath('/Users/stiso/Documents/Code/graph_learning/'))
+addpath(genpath('/Users/stiso/Documents/MATLAB/Colormaps/'))
 addpath(('/Users/stiso/Documents/MATLAB/fieldtrip-20170830/'))
 % define variables
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/behavior_preprocessed/';
@@ -81,9 +82,9 @@ for i = 1:nGraph
         A_hat_dist = A_hat - diag(diag(A_hat));
         
         % plot A_hat and get separability of modules
-        [Y, E] = cmdscale(A_hat_dist,2);
-        figure(2); clf
-        scatter(Y(:,1), Y(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
+         [Y, E] = cmdscale(A_hat_dist,2);
+%         figure(2); clf
+%         scatter(Y(:,1), Y(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
         if strcmp(graphs{i},'mod')
             module_sep{j} = pdist([mean(Y(2:4,1)),mean(Y(2:4,2));mean(Y(7:9,1)),mean(Y(7:9,2))]);
         end
@@ -139,18 +140,19 @@ for b = 1:numel(beta)
     plot([log10(beta(b)), log10(beta(b))],...
         [min([measures_struct.lat_compressibility{:}]),max([measures_struct.mod_compressibility{:}])], 'r'); hold on
 end
-plot(log10(test_betas), [measures_struct.mod_compressibility{:}], 'color', rgb('darkorchid'), 'linewidth', 4);
-plot(log10(test_betas), [measures_struct.lat_compressibility{:}], 'color', rgb('steelblue'), 'linewidth', 4);
+plot(log10(test_betas), [measures_struct.mod_compressibility{:}], 'color', [125/255,138/255,95/255], 'linewidth', 4);
+plot(log10(test_betas), [measures_struct.lat_compressibility{:}], 'color', [101/255,111/255,147/255], 'linewidth', 4);
 xlabel('log10( beta )'); ylabel('Compressibility')
-saveas(gca, [img_dir, 'compressibility.png']);
+saveas(gca, [img_dir, 'compressibility.pdf']);
 
 
 figure(2); clf
-plot(log10(test_betas), [measures_struct.mod_module_sep{:}], 'linewidth', 2); hold on
+plot(log10(test_betas), [measures_struct.mod_module_sep{:}], 'color', [125/255,138/255,95/255], 'linewidth', 4); hold on
 for b = 1:numel(beta)
     if (mod(str2double(subjs{b}),2) == 0) && (str2double(subjs{b}) ~= 6)
         plot([log10(beta(b)), log10(beta(b))],...
             [min([measures_struct.mod_module_sep{:}]),max([measures_struct.mod_module_sep{:}])], 'r');
     end
 end
+saveas(gca, [img_dir, 'sim_mod_dist.pdf']);
 
