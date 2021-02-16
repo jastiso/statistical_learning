@@ -36,7 +36,7 @@ for t = 1:(T-1)
     j = S(t+1);
     
     % Belief that node i appeared at time t:
-    Q = zeros(N,1);
+    Q = zeros(N,1);         
     for i = 1:N
         Qi = sum(P(1:t, S(1:t) == i),2);
         Q(i) = Qi(end);

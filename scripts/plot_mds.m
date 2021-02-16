@@ -164,7 +164,7 @@ subjs = subjs(beta ~= 0);
 beta = nonzeros(beta);
 figure(3); clf
 scatter(log(beta), stresses)
-saveas(gca, ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/mod_sep.pdf'], 'pdf')
+%saveas(gca, ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/mod_sep.pdf'], 'pdf')
 
 [r,p] = corr(log(beta), stresses', 'type','pearson')
 

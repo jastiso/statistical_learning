@@ -85,6 +85,55 @@ xlabel('log( beta )')
 ylabel('Count')
 saveas(gca, [img_dir, 'ecog_betas.png'], 'png')
 
+%% Get A_hat in blocks
+
+load([save_dir, 'max_ent.mat'], 'beta', 'A_hat')
+nBlock = 2;
+blocks = [1, 2; 3,4];
+A_hat_block = zeros(nBlock,nSubj,nNode,nNode);
+mat_dist = zeros(nBlock,nSubj);
+beta_block = zeros(nBlock,nSubj);
+tri_mask = logical(triu(ones(nNode),1));
+
+for s = 1:nSubj
+    subj_data = data(data.subj==str2double(subjs{s}),:);
+    for b = 1:nBlock
+        curr = subj_data((subj_data.block == blocks(b,1)) | (subj_data.block == blocks(b,2)),:);
+        if mod(str2double(subjs{s}),2) == 0
+            A = M;
+        else
+            A = L;
+        end
+
+        rt = curr.resid;
+        trials = curr.order;
+
+        load([ephys_dir, subjs{s}, '/task_data.mat'])
+
+        [beta_block(b,s), r0(s), r1(s), E(s), diff(s)] = learn_linear_real_full(walk, rt, trials);
+
+        % get A_hat
+        A_hat_block(b, s, :, :) = (1 - exp(-beta_block(b,s)))*A*(eye(nNode) - exp(-beta_block(s))*A)^(-1);
+
+        figure(1); clf
+        imagesc(squeeze(A_hat_block(b,s,:,:))); colorbar
+        saveas(gca, [img_dir, 'A_hat_', num2str(s), '_', num2str(b), '.png'], 'png')
+
+        %a_block = squeeze(A_hat_block(b,s,:,:)) - diag(diag(squeeze(A_hat_block(b,s,:,:))));
+        %a = squeeze(A_hat(s,:,:)) - diag(diag(squeeze(A_hat(s,:,:))));
+        mat_dist(b,s) = norm(reshape(A_hat(s,:,:),[],1) - reshape(A_hat_block(b,s,:,:),[],1));
+
+    end
+end
+
+boxplot(log(mat_dist)')
+beta_block(beta_block > 1000) = 1000;
+beta_block(beta_block < 0) = 0;
+ahat_block_data = table([subjs,subjs]', [repmat(ones,nSubj,1);repmat(ones,nSubj,1)+1],...
+    [mat_dist(1,:)'; mat_dist(2,:)'], [beta_block(1,:)'; beta_block(2,:)'], [beta;beta], ...
+    'VariableNames', [{'subj'}, {'block'}, {'dist'}, {'beta_block'}, {'beta'}]);
+writetable(ahat_block_data, [r_dir, 'ahat_block.csv']);
+
 %% Get A_hat time varying
 
 plt=0;

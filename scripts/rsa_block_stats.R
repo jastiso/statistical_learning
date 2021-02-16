@@ -43,7 +43,7 @@ p
 ggsave("ephys_img/block_rsa.eps",p)
 
 
-############################################# Ahat
+############################################# Ahat static beta
 b_df = read.csv('ephys_analysis/ahat_seq.csv')
 b_df = merge(b_df, demo, by='subj')
 b_df$subj = as.factor(b_df$subj)
@@ -63,6 +63,37 @@ p = ggplot(data=dplyr::filter(b_df_avg, block < 2), aes(x=block, y=mean_dist, gr
   geom_line() + scale_color_manual(values=brewer.pal(9,'OrRd')) +
   theme_minimal() 
 p
+
+############################################# Ahat veriable beta
+bv_df = read.csv('ephys_analysis/ahat_block.csv')
+bv_df = merge(bv_df, demo, by='subj')
+bv_df$subj = as.factor(bv_df$subj)
+bv_df$beta_rank = as.factor(rank(bv_df$beta))
+bv_df$beta_diff = log10(bv_df$beta) - log10(bv_df$beta_block)
+bv_df = bv_df[bv_df$beta < 1000 & bv_df$beta > 0,]
+summary(bv_df)
+
+pd = position_dodge(0.05)
+p = ggplot(data=bv_df, aes(x=block, y=(beta_diff), group = subj, color=as.factor(beta_rank))) + 
+  geom_line(position=pd) + geom_point(size=3, position=pd) + 
+  scale_color_manual(values=brewer.pal(9,'OrRd')) +
+  theme_minimal()
+p
+ggsave("ephys_img/ahat_block.svg",p)
+stat = lmp(data=bv_df, beta_block~block)
+anova(stat)
+stat = lmp(data=bv_df, beta_diff~block)
+anova(stat)
+
+pd = position_dodge(0.05)
+p = ggplot(data=bv_df, aes(x=block, y=(dist), group = subj, color=as.factor(beta_rank))) + 
+  geom_line(position=pd) + geom_point(size=3, position=pd) + 
+  scale_color_manual(values=brewer.pal(9,'OrRd')) +
+  theme_minimal() 
+p
+stat = lmp(data=bv_df, dist~block)
+anova(stat)
+
 
 ################################################## Combined
 
@@ -112,4 +143,4 @@ p = ggplot(data = df, aes(x=log10(beta), y=module_dist)) +
   geom_smooth(method='lm', color='black') + geom_point(size=5, color=rgb(125/255,138/255,95/255)) + 
   theme_minimal()
 p
-ggsave("ephys_img/mod_dist_neur.pdf",p)
+ggsave("ephys_img/mod_dist_neur.svg",p)
