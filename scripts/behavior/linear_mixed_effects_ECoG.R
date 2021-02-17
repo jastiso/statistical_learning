@@ -103,7 +103,7 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 # test if points makes a difference
 
 # learn and graph
-stat_learn = lmer(data=df_correct, rt~scale(log10(order))*graph +sex + yob + finger + typing_raw + hand_transition + scale(block)*graph + points + scale(log(recency_fact)) + scale(sess) + (1 + scale(log10(order))*graph + scale(log(recency_fact)) |subj))
+stat_learn = lmer(data=df_correct, rt~scale((order))*graph + sex + yob + finger + typing_raw + hand_transition + scale(block)*graph + points + scale(log(recency_fact)) + scale(sess) + (1 + scale((order))*graph + scale(log(recency_fact)) |subj))
 anova(stat_learn)
 
 # save residuals
@@ -116,8 +116,8 @@ stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + sex 
                          (1 + scale(log10(order))*transition |subj))
 
 
-stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(order))*transition +sex + scale(yob) + finger + points + typing_raw + hand + hand_transition + scale(block) + scale(log(recency_fact)) + sess + 
-                         (1 + scale(log10(order))*transition + scale(log(recency_fact)) |subj))
+stat_surprisal2 = lmer(data=df_modular, rt~scale((order))*transition +sex + scale(yob) + finger + points + typing_raw + hand + hand_transition + scale(block) + scale(log(recency_fact)) + sess + 
+                         (1 + scale((order))*transition + scale(log(recency_fact)) |subj))
 # chi sq
 anova(stat_surprisal2, stat_surprisal1, test="Chisq")
 
@@ -191,13 +191,17 @@ bin_data_graph= data_frame(trial = c(tapply(avg_data$order, cut(avg_data$order, 
                                         tapply(avg_data$order, cut(avg_data$order, nbin), mean)),
                               mean_rt = c(tapply(filter(avg_data, graph == "modular")$mean_rt, cut(filter(avg_data, graph == "modular")$order, nbin), mean), 
                                           tapply(filter(avg_data, graph == "lattice")$mean_rt, cut(filter(avg_data, graph == "lattice")$order, nbin), mean)),
+                              std_rt = c(tapply(filter(avg_data, graph == "modular")$sd_rt, cut(filter(avg_data, graph == "modular")$order, nbin), mean), 
+                                       tapply(filter(avg_data, graph == "lattice")$sd_rt, cut(filter(avg_data, graph == "lattice")$order, nbin), mean)),
                               transition = c(rep("modular", times = length(tapply(avg_data$order, cut(avg_data$order, nbin), mean))), 
                                              rep("lattice", times = length(tapply(avg_data$order, cut(avg_data$order, nbin), mean)))))
 
 
 plot = ggplot(data=bin_data_graph, aes(x=trial, y=mean_rt, color = transition))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
+  geom_ribbon(aes(x=trial, y=mean_rt, ymax=mean_rt+std_rt, ymin = mean_rt-std_rt, fill=transition), alpha = 0.2) +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255))) +
+  scale_fill_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))+
   ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_graph.pdf', sep = ''))
 
 avg_acc = df_clean %>%

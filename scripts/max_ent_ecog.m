@@ -13,7 +13,7 @@ r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 % load stuff
 data = readtable([save_dir, 'residuals.csv']);
 
-subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'8'}, {'10'}, {'12'},{'18'}];
+subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'7'}, {'8'}, {'10'}, {'12'},{'18'}];
 nSubj = numel(subjs);
 nNode = 10;
 beta = zeros(nSubj,1);

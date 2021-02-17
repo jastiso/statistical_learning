@@ -155,8 +155,8 @@ f = function(x) {
   }
   return(y)
 }
-nuissance_reg = lmer(data=df_correct, rt~scale(log10(cum_trial)) + scale(log10(trial)) + finger + hand + hand_transition + stage_num + 
-                       (1 + scale(log10(cum_trial))|workerid))
+nuissance_reg = lmer(data=df_correct, rt~scale((cum_trial)) + scale(log10(trial)) + finger + hand + hand_transition + stage_num + 
+                       (1 + scale((cum_trial))|workerid))
 recency_fact = lapply(df_correct$recency, f)
 df_correct$recency_fact = unlist(recency_fact)
 df_modular = filter(df_correct, is_lattice == 0)
@@ -183,14 +183,14 @@ ggsave(paste( 'experiment/data/preprocessed/images/recency_avg.png', sep = ''))
 
 ### Learning
 # add *is lattice to trial if you have multiple graphs
-stat_learn = lmer(data=df_correct, rt~scale(log10(cum_trial))*is_lattice + stage_num*is_lattice + finger + hand + hand_transition + scale(log(recency_fact)) + 
-                                        (1 + scale(log10(cum_trial)) + scale(log(recency_fact))|workerid))
+stat_learn = lmer(data=df_correct, rt~scale((cum_trial))*is_lattice + stage_num*is_lattice + finger + hand + hand_transition + scale(log(recency_fact)) + 
+                                        (1 + scale((cum_trial)) + scale(log(recency_fact))|workerid))
 anova(stat_learn)
 
 # save residuals
 # for later plotting
-df_modular$resid = resid(lmer(data=df_modular, rt~scale(log10(cum_trial)) + scale(log(recency_fact)) + finger + hand + hand_transition + stage_num + log10(recency) + 
-                                (1 + scale(log10(cum_trial)) + scale(log(recency_fact))|workerid)))
+df_modular$resid = resid(lmer(data=df_modular, rt~scale((cum_trial)) + scale(log(recency_fact)) + finger + hand + hand_transition + stage_num + log10(recency) + 
+                                (1 + scale((cum_trial)) + scale(log(recency_fact))|workerid)))
 
 # for max_ent analyses
 max_ent_data = select(df_correct, c('walk_id', 'workerid', 'trial', 'is_lattice'))
@@ -201,14 +201,14 @@ write.csv(max_ent_data, file = 'data/preprocessed/residuals.csv')
 ### Modular
 # change to df modular if multiple graphs
 # most basic
-stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster + stage_num + finger + hand + hand_transition + 
-                        (1 + scale(log10(cum_trial))*is_crosscluster|workerid))
+stat_surprisal1 = lmer(data=df_modular, rt~scale((cum_trial))*is_crosscluster + stage_num + finger + hand + hand_transition + 
+                        (1 + scale((cum_trial))*is_crosscluster|workerid))
 anova(stat_surprisal1)
 summary(stat_surprisal1)
 
 # adding lag 10 - is it useful to include this with a random slope?
-stat_surprisal2 = lmer(data=df_modular, rt~scale(log10(cum_trial))*is_crosscluster +  stage_num + finger + hand + hand_transition + scale(log10(recency_fact)) + 
-                         (1 + scale(log10(cum_trial))*is_crosscluster + scale(log10(recency_fact))|workerid))
+stat_surprisal2 = lmer(data=df_modular, rt~scale((cum_trial))*is_crosscluster +  stage_num + finger + hand + hand_transition + scale(log10(recency_fact)) + 
+                         (1 + scale((cum_trial))*is_crosscluster + scale((recency_fact))|workerid))
 anova(stat_surprisal2)
 summary(stat_surprisal2)
 
@@ -239,8 +239,8 @@ for (i in seq(1,10)){
   subset_subj = sample(subjs, 9, replace=FALSE)
   idx = unlist(lapply(df_modular$workerid, function(x) is.element(x, subset_subj)))
   tmp_df = df_correct[idx,]
-  subset_stat = lmer(data=tmp_df, rt~scale(log10(cum_trial))*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + hand_transition + scale(lag10) + 
-                       (1 + scale(log10(cum_trial))*is_crosscluster + scale(lag10) |workerid))
+  subset_stat = lmer(data=df_modular, rt~scale((cum_trial)) + scale(log(recency_fact)) + finger + hand + hand_transition + stage_num + log10(recency) + 
+                       (1 + scale((cum_trial)) + scale(log(recency_fact))|workerid))
   print(anova(subset_stat))
 }
 
@@ -345,14 +345,18 @@ bin_data_graph= data_frame(trial = c(tapply(avg_graph$cum_trial, cut(avg_graph$c
                                      tapply(avg_graph$cum_trial, cut(avg_graph$cum_trial, nbin), mean)),
                            mean_rt = c(tapply(filter(avg_graph, is_lattice == 0)$mean_rt, cut(filter(avg_graph, is_lattice == 0)$cum_trial, nbin), mean), 
                                        tapply(filter(avg_graph, is_lattice == 1)$mean_rt, cut(filter(avg_graph, is_lattice == 1)$cum_trial, nbin), mean)),
+                           mean_std = c(tapply(filter(avg_graph, is_lattice == 0)$sd_rt, cut(filter(avg_graph, is_lattice == 0)$cum_trial, nbin), mean), 
+                                       tapply(filter(avg_graph, is_lattice == 1)$sd_rt, cut(filter(avg_graph, is_lattice == 1)$cum_trial, nbin), mean)),
                            transition = c(rep("modular", times = length(tapply(avg_graph$cum_trial, cut(avg_graph$cum_trial, nbin), mean))), 
                                           rep("lattice", times = length(tapply(avg_graph$cum_trial, cut(avg_graph$cum_trial, nbin), mean)))))
 
 
 plot = ggplot(data=bin_data_graph, aes(x=trial, y=mean_rt/1000, color = transition))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
-  theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))
-ggsave(paste( 'experiment/data/preprocessed/images/rt_bin_graph.pdf', sep = ''))
+  geom_ribbon(aes(x=trial, y=mean_rt, ymax=mean_rt+std_rt, ymin = mean_rt-std_rt, fill=transition), alpha = 0.2) +
+  theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255))) +
+  scale_fill_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))
+ggsave(paste( 'experiment/data/preprocessed/images/rt_bin_mturk_graph.pdf', sep = ''))
 
 
 # cross_cluster
