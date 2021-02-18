@@ -353,7 +353,7 @@ bin_data_graph= data_frame(trial = c(tapply(avg_graph$cum_trial, cut(avg_graph$c
 
 plot = ggplot(data=bin_data_graph, aes(x=trial, y=mean_rt/1000, color = transition))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
-  geom_ribbon(aes(x=trial, y=mean_rt, ymax=mean_rt+std_rt, ymin = mean_rt-std_rt, fill=transition), alpha = 0.2) +
+  geom_ribbon(aes(x=trial, y=mean_rt/1000, ymax=mean_rt/1000+mean_std/1000, ymin = mean_rt/1000-mean_std/1000, fill=transition), alpha = 0.2) +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255))) +
   scale_fill_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))
 ggsave(paste( 'experiment/data/preprocessed/images/rt_bin_mturk_graph.pdf', sep = ''))

@@ -10,7 +10,7 @@ addpath(genpath('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/'))
 addpath(genpath('/Users/stiso/Documents/Code/graph_learning/functions/'))
 
 % define variables
-subjs = [ {'1'},{'2'},{'3'},{'4'},{'5'},{'6'},{'8'},{'10'},{'12'}];
+subjs = [ {'1'},{'2'},{'3'},{'4'},{'5'},{'6'},{'7'},{'8'},{'10'},{'12'}];
 feature = 'lfp'; % pow or lfp
 freqs = logspace(log10(3), log10(150), 50);
 nBlock = 2;

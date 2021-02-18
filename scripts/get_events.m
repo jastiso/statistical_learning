@@ -4,7 +4,7 @@ clear
 addpath(genpath('/Users/stiso/Documents/MATLAB/ieeg-matlab-1.13.2/'))
 addpath(genpath('/Users/stiso/Documents/MATLAB/eeglab_current/'))
 % define variables
-subj = '5';
+subj = '7';
 sess = []; % can be empty
 sess_flag = ~isempty(sess);
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
@@ -47,7 +47,7 @@ events = [events.onsets events.offsets];
 % here, only one bad trial at the end when the PD is unplugged
 
 % if all trials are present, there should be 1000 at the end
-events = events(13:(end-2),:);
+events = events(13:(end-1),:);
 
 if ~sess_flag
     save([save_dir, subj, '/event_params.mat'], 'minITI', 'minDuration','event_thresh')

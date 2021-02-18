@@ -11,7 +11,7 @@ addpath(genpath('/Users/stiso/Documents/Code/graph_learning/functions/'))
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 
-subj = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'8'}, {'10'}, {'12'}];
+subj = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'7'}, {'8'}, {'10'}, {'12'}];
 nSim = 100;
 feat_type = 'lfp';
 flag = 'all';

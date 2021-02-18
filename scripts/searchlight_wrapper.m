@@ -12,8 +12,8 @@ save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 
 % define variables
-subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'8'},{'10'}, {'12'}];
-A_hat_order = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'8'}, {'10'},{'12'},{'18'}];
+subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'7'}, {'8'},{'10'}, {'12'}];
+A_hat_order = load([r_dir, 'ahat_order.mat']);
 feat_type = 'lfp'; % pow or lfp
 freqs = logspace(log10(3), log10(150), 50);
 
