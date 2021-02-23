@@ -14,7 +14,7 @@ r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 subj = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'7'}, {'8'}, {'10'}, {'12'}];
 nSim = 100;
 feat_type = 'lfp';
-flag = 'all';
+flag = 'lat';
 if strcmp(flag,'mod')
     idx = cellfun(@(x) mod(str2double(x),2) == 0, subj);
     subj = subj(idx);

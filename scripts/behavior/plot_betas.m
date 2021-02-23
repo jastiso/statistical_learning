@@ -10,7 +10,7 @@ load([mTurk_dir, 'max_ent.mat'], 'beta')
 beta_mturk = beta;
 load([ieeg_dir, 'max_ent.mat'], 'beta')
 data = readtable('/Users/stiso/Documents/Python/graphLearning/old_tasks/mTurk-10-node-breaks/data/preprocessed/residuals.csv');
-subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'8'}, {'10'}, {'12'},{'18'}];
+subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'7'}, {'8'}, {'10'}, {'12'},{'18'}];
 % get mturk graph idx
 mturk_subjs = unique(data.workerid);
 mturk_idx = cellfun(@(x) any(data.is_lattice(strcmp(data.workerid,x))), mturk_subjs);

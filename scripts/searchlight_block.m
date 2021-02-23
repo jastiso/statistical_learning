@@ -40,13 +40,11 @@ load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/RSA_di
 D_null = D;
 clear D
 
-trans1 = [253,224,239]./255;
-trans2 = [230,245,208]./255;
-within1 = [233,163,201]./255;
-within2 = [161,215,106]./255;
-center1 = [197,27,125]./255;
-center2 = [77,146,33]./255;
-cluster_colors = [trans1; within1; center1; within1; trans1; trans2; within2; center2; within2; trans2];
+trans1 = [239,169,186]./255;
+trans2 = [177,191,146]./255;
+within1 = [174,116,133]./255;
+within2 = [126,138,96]./255;
+cluster_colors = [trans1; within1; within1; within1; trans1; trans2; within2; within2; within2; trans2];
 
 % initialize for stats
 varnames = {'subj','space','block','elec','corr'};
