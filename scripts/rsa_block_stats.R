@@ -48,7 +48,6 @@ p = ggplot(data=filter(df_avg,space=='latent'), aes(x=block, y=mean_corr, color=
   geom_line(aes(color=is_lat),position=pd) + geom_point(aes(color=is_lat),size=3, position=pd) + 
   theme_minimal() + scale_color_manual(values=c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))
 p
-ggsave("ephys_img/block_rsa.eps",p)
 
 
 ############################################# Ahat static beta
@@ -77,12 +76,13 @@ bv_df = read.csv('ephys_analysis/ahat_block.csv')
 bv_df = merge(bv_df, demo, by='subj')
 bv_df$subj = as.factor(bv_df$subj)
 bv_df$beta_rank = as.factor(rank(bv_df$beta))
-bv_df$beta_diff = log10(bv_df$beta) - log10(bv_df$beta_block)
-#bv_df = bv_df[bv_df$beta < 1000 & bv_df$beta > 0,]
+bv_df$beta_diff = (bv_df$beta) - (bv_df$beta_block)
+bv_df = bv_df[bv_df$beta < 1000 & bv_df$beta > 0,]
+bv_df$beta_diff_log = log10(abs(bv_df$beta_diff))
 summary(bv_df)
 
 pd = position_dodge(0.05)
-p = ggplot(data=bv_df, aes(x=block, y=log10(beta_block), group = subj, color=as.factor(beta_rank))) + 
+p = ggplot(data=bv_df, aes(x=block, y=(beta_diff_log), group = subj, color=as.factor(beta_rank))) + 
   geom_line(position=pd) + geom_point(size=3, position=pd) + 
   scale_color_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(10)) +
   theme_minimal()
@@ -90,8 +90,8 @@ p
 ggsave("ephys_img/ahat_block.svg",p)
 stat = lmp(data=bv_df, (beta_block)~block)
 anova(stat)
-stat = lmp(data=bv_df[bv_df$beta_diff != Inf,], abs(beta_diff)~block)
-anova(stat)
+stat = t.test(dplyr::filter(bv_df, block==1)$beta_diff, dplyr::filter(bv_df, block==2)$beta_diff, paired=TRUE)
+stat
 
 pd = position_dodge(0.05)
 p = ggplot(data=bv_df, aes(x=block, y=(dist), group = subj, color=as.factor(beta_rank))) + 

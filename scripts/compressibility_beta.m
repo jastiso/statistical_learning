@@ -186,21 +186,21 @@ for b = 1:numel(beta)
     plot([log10(beta(b)), log10(beta(b))],...
         [min([measures_struct.lat_compressibility{:}]),max([measures_struct.mod_compressibility{:}])], 'r'); hold on
 end
-plot(log10(test_betas), [measures_struct.mod_compressibility{:}], 'color', [125/255,138/255,95/255], 'linewidth', 4);
+plot(log10(test_betas), [measures_struct.mod_compressibility{:}], 'color', [174/255,116/255,133/255], 'linewidth', 4);
 plot(log10(test_betas), [measures_struct.lat_compressibility{:}], 'color', [101/255,111/255,147/255], 'linewidth', 4);
 xlabel('log10( beta )'); ylabel('Compressibility')
-saveas(gca, [img_dir, 'compressibility.pdf']);
+saveas(gca, [img_dir, 'sim_compressibility.pdf']);
 
 null_dists = reshape([measures_struct.lat_module_sep{:}],126,nSim);
-    figure(2); clf
-    plot(log10(test_betas), null_dists, 'color', [101/255,111/255,147/255], 'linewidth', 1); hold on
-    plot(log10(test_betas), [measures_struct.mod_module_sep{:}], 'color', [125/255,138/255,95/255], 'linewidth', 4);
-    
-    for b = 1:numel(beta)
-        if (mod(str2double(subjs{b}),2) == 0) && (str2double(subjs{b}) ~= 6)
-            plot([log10(beta(b)), log10(beta(b))],...
-                [min([measures_struct.mod_module_sep{:}]),max([measures_struct.mod_module_sep{:}])], 'r');
-        end
+figure(2); clf
+plot(log10(test_betas), null_dists, 'color', [101/255,111/255,147/255], 'linewidth', 2); hold on
+plot(log10(test_betas), [measures_struct.mod_module_sep{:}], 'color', [174/255,116/255,133/255], 'linewidth', 4);
+
+for b = 1:numel(beta)
+    if (mod(str2double(subjs{b}),2) == 0) && (str2double(subjs{b}) ~= 6)
+        plot([log10(beta(b)), log10(beta(b))],...
+            [min([measures_struct.lat_module_sep{:}])-0.2,max([measures_struct.mod_module_sep{:}])+0.2], 'k');
     end
-    saveas(gca, [img_dir, 'sim_mod_dist.pdf']);
-    
+end
+saveas(gca, [img_dir, 'sim_mod_dist.png']);
+
