@@ -55,6 +55,8 @@ b_df = read.csv('ephys_analysis/ahat_seq.csv')
 b_df = merge(b_df, demo, by='subj')
 b_df$subj = as.factor(b_df$subj)
 b_df$beta_rank = as.factor(rank(b_df$beta))
+b_df$is_lat = as.factor(strtoi(b_df$subj) %% 2)
+
 summary(b_df)
 
 p = ggplot(data=b_df, aes(x=trial, y=(dist), group = subj, color=as.factor(beta))) + 
@@ -63,11 +65,17 @@ p = ggplot(data=b_df, aes(x=trial, y=(dist), group = subj, color=as.factor(beta)
 p
 ggsave("ephys_img/ahat_seq.pdf",p)
 
+p = ggplot(data=b_df, aes(x=trial, y=(dist), group = subj, color=is_lat)) + 
+  geom_line() + scale_color_manual(values=c(rgb(125/255,138/255,95/255), rgb(101/255,111/255,147/255)))+
+  theme_minimal() 
+p
+ggsave("ephys_img/ahat_seq.pdf",p)
+
 b_df$block = floor(b_df$trial/501)
 b_df_avg = dplyr::summarise(group_by(b_df, subj, beta, sex, yob, block), mean_dist = mean(dist), sd_dist = sd(dist))
 
-p = ggplot(data=dplyr::filter(b_df_avg, block < 2), aes(x=block, y=mean_dist, group = subj, color=as.factor(beta))) + 
-  geom_line() +scale_color_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(10)) +
+p = ggplot(data=dplyr::filter(b_df_avg, block < 2), aes(x=block, y=mean_dist, group = subj, color=is_lat)) + 
+  geom_line() +scale_color_manual(values=c(rgb(125/255,138/255,95/255), rgb(101/255,111/255,147/255))) +
   theme_minimal() 
 p
 
@@ -76,6 +84,9 @@ bv_df = read.csv('ephys_analysis/ahat_block.csv')
 bv_df = merge(bv_df, demo, by='subj')
 bv_df$subj = as.factor(bv_df$subj)
 bv_df$beta_rank = as.factor(rank(bv_df$beta))
+demo$is_lat = as.factor(strtoi(demo$subj) %% 2)
+bv_df_ext = bv_df[bv_df$beta_block >= 1000 | bv_df$beta_block <= 0,]
+bv_df = bv_df[bv_df$beta_block < 1000 & bv_df$beta_block > 0,]
 bv_df$beta_diff = (bv_df$beta) - (bv_df$beta_block)
 bv_df = bv_df[bv_df$beta < 1000 & bv_df$beta > 0,]
 bv_df$beta_diff_log = log10(abs(bv_df$beta_diff))
@@ -90,17 +101,14 @@ p
 ggsave("ephys_img/ahat_block.svg",p)
 stat = lmp(data=bv_df, (beta_block)~block)
 anova(stat)
-stat = t.test(dplyr::filter(bv_df, block==1)$beta_diff, dplyr::filter(bv_df, block==2)$beta_diff, paired=TRUE)
+stat = t.test(dplyr::filter(bv_df, block==1)$beta_diff, dplyr::filter(bv_df, block==2)$beta_diff)
 stat
 
-pd = position_dodge(0.05)
-p = ggplot(data=bv_df, aes(x=block, y=(dist), group = subj, color=as.factor(beta_rank))) + 
-  geom_line(position=pd) + geom_point(size=3, position=pd) + 
-  scale_color_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(10)) +
+p = ggplot(data=bv_df_ext, aes(x=block)) + 
+  geom_bar(aes(fill=is_lat))  + scale_fill_manual(values=c(rgb(125/255,138/255,95/255), rgb(101/255,111/255,147/255))) +
   theme_minimal() 
 p
-stat = lmp(data=bv_df, dist~block)
-anova(stat)
+ggsave("ephys_img/ahat_block_ext.pdf",p)
 
 
 ################################################## Combined
@@ -108,34 +116,33 @@ anova(stat)
 data_all = merge(b_df,df, by=c('subj','sex','yob'))
 summary(data_all)
 
-df_avg = dplyr::summarise(group_by(data_all, subj,space,block, uniqueid,beta_rank,beta), mean_corr = mean(corr), sd_corr = sd(corr)/sqrt(length(corr)))
+df_avg = dplyr::summarise(group_by(data_all, subj,space,block,beta_rank,beta), mean_corr = mean(corr), 
+                          full_corr = mean(full_corr), sd_corr = sd(corr)/sqrt(length(corr)), sex = sex[1], yob = yob[1])
+df_elec_avg = dplyr::summarise(group_by(data_all, elec,subj,space,block,beta_rank,beta), 
+                               full_corr = mean(full_corr), dist = mean(dist), mean_corr = mean(corr), 
+                               sd_corr = sd(corr)/sqrt(length(corr)), sex = sex[1], yob = yob[1])
 
 pd = position_dodge(0.05)
-p = ggplot(data=filter(df_avg, space=='latent'), aes(x=block, y=mean_corr, color=beta_rank, group=uniqueid)) + 
-  geom_errorbar(aes(ymin=mean_corr-sd_corr, ymax = mean_corr+sd_corr), color='black', width=0.01, position=pd) +
-  geom_line(position=pd) + geom_point(size=3, position=pd) + 
+p = ggplot(data=filter(df_avg, space=='latent', block == 1), aes(x=log10(beta), y=mean_corr, color=beta_rank, group=subj)) + 
+   geom_point(size=3, position=pd) + 
   theme_minimal() + scale_color_manual(values=brewer.pal(9,'OrRd'))
 p
 
 pd = position_dodge(0.05)
-p = ggplot(data=filter(data_all,block==1, space=='latent'), aes(x=corr, y=log10(beta), color=as.factor((beta)), group=subj)) + 
-  #geom_errorbar(aes(ymin=mean_corr-sd_corr, ymax = mean_corr+sd_corr), color='black', width=0.01, position=pd) +
-  geom_line(position=pd) + geom_point(size=3, position=pd) + 
+tmp = filter(df_avg, space == 'latent', block == 1)
+stat = lm(data=tmp, mean_corr ~ full_corr + sex + yob)
+tmp$resid = resid(stat)
+p = ggplot(data=filter(tmp, beta != 1000), aes(x=log10(beta), y=resid)) + 
+  geom_point(size=3, position=pd) + geom_smooth( method='lm') + 
   theme_minimal() + scale_color_manual(values=brewer.pal(9,'OrRd'))
 p
 
 b_df_avg$block = b_df_avg$block + 1
 df_avg = merge(df_avg, b_df_avg, by = c('subj','block'))
-stat = lmer(data=filter(df_avg, space == 'latent'), mean_corr~mean_dist + sex + yob + (1|subj))
+stat = lm(data=filter(tmp, beta != 1000), mean_corr~log10(beta) + full_corr + sex + yob)
 anova(stat)
 summary(stat)
 
-
-p = ggplot(data=dplyr::filter(df_avg, space == 'latent'), aes(x=mean_corr, y=(mean_dist), color=as.factor(block), group=subj)) + 
-  #geom_errorbar(aes(ymin=mean_corr-sd_corr, ymax = mean_corr+sd_corr), color='black', width=0.01, position=pd) +
-  geom_point(size=3) + 
-  theme_minimal() #+ scale_color_manual(values=brewer.pal(2,'OrRd'))
-p
 
 ##########################################################
 df = read.csv('ephys_analysis/mod_dist.csv')
@@ -151,8 +158,15 @@ summary(df)
 
 stat = lm(data=df, module_dist~log10(beta)+sex+yob)
 summary(stat)
+rs = list()
+for (i in unique(df_null$set)){
+  tmp = dplyr::filter(df_null, is_lat == 1 & set == i)
+  rs = c(rs, cor(tmp$module_dist, log10(tmp$beta), method='spearman'))
+}
+max(unlist(rs))
+stat = cor.test(df$module_dist, log10(df$beta), method='spearman')
 
-p = ggplot(data = df, aes(x=log10(beta), y=module_dist)) + 
+p = ggplot(data = df, aes(x=log10(beta), y=(module_dist))) + 
   geom_smooth(method='lm', color='black') + geom_point(size=5, color=rgb(125/255,138/255,95/255)) + 
   theme_minimal() + 
   geom_line(data = df_null, aes(x=log10(beta), y=module_dist, group=set), stat='smooth', method='lm', 

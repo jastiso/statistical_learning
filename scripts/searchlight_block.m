@@ -47,8 +47,8 @@ within2 = [126,138,96]./255;
 cluster_colors = [trans1; within1; within1; within1; trans1; trans2; within2; within2; within2; trans2];
 
 % initialize for stats
-varnames = {'subj','space','block','elec','corr'};
-block_data = cell2table(cell(0,5), 'VariableNames',varnames);
+varnames = {'subj','space','block','elec','corr', 'full_corr'};
+block_data = cell2table(cell(0,6), 'VariableNames',varnames);
 
 for subj_idx = 1:numel(subjs)
     subj = subjs{subj_idx};
@@ -66,7 +66,8 @@ for subj_idx = 1:numel(subjs)
     load([save_dir, subj, '/ft_data.mat'])
     load([save_dir, subj, '/header_clean.mat'])
     load([save_dir, subj, '/good_events.mat']) % in samples
-    load([r_dir, 'subj' subj, '/searchlight_corrs.mat'],'sig_idx')
+    load([r_dir, 'subj' subj, '/searchlight_corrs.mat'],'sig_idx', 'A_hat_corr')
+    full_ahat_corr = A_hat_corr;
     load([save_dir, subj, '/order.mat'],'order')
     D_null = D_null(order,order);
     
@@ -110,7 +111,6 @@ for subj_idx = 1:numel(subjs)
     A_corr = nan(nElec,nBlock);
     A_hat_corr = nan(nElec,nBlock);
     N_corr = nan(nElec,nBlock);
-    
     curr_trials = trial(good_trials);
     % need at least 200 ms for power analyses, also anything short doesnt
     % really make sense
@@ -244,6 +244,7 @@ for subj_idx = 1:numel(subjs)
     A_corr = A_corr(sig_idx,:);
     A_hat_corr = A_hat_corr(sig_idx,:);
     N_corr = N_corr(sig_idx,:);
+    full_ahat_corr = full_ahat_corr(sig_idx);
         
     save([r_dir, 'subj' subj, '/searchlight_corrs_block.mat'], 'G_corr', 'A_corr', 'A_hat_corr')
     cnt = size(block_data,1) + 1;
@@ -251,6 +252,7 @@ for subj_idx = 1:numel(subjs)
     block_data = [block_data; table(repmat({subj}, num,1), [repmat({'latent'}, sum(sig_idx),1); repmat({'euclid'}, sum(sig_idx,1),1);...
         repmat({'latent'}, sum(sig_idx),1); repmat({'euclid'}, sum(sig_idx,1),1)], num2cell([ones(num/2,1);ones(num/2,1)+1]),...
         repmat(elec_labels(sig_idx,1), 4,1),num2cell([A_hat_corr(:,1); N_corr(:,1); A_hat_corr(:,2); N_corr(:,2)]),...
+        [full_ahat_corr; full_ahat_corr; full_ahat_corr; full_ahat_corr],...
         'VariableNames', varnames)];
     
     %plot

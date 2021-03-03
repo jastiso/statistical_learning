@@ -217,7 +217,7 @@ for e = 1:nElec
     histogram(perm_corr(:,e)); hold on
     plot([A_hat_corr(e), A_hat_corr(e)], [0,20], 'r')
     % update index of elecs
-    sig_idx(e) = sum(A_hat_corr(e) > squeeze(perm_corr(:,e))) >= (.95*nSim);
+    sig_idx(e) = sum(A_hat_corr(e) > squeeze(perm_corr(:,e))) >= (.95*nSim) & (A_hat_corr(e) >= A_corr(e));
     sig_null_idx(e) = sum(D_corr(e) > squeeze(perm_corr_null(:,e))) >= (0.95*nSim);
 end
 sig_idx = logical(sig_idx);

@@ -37,7 +37,7 @@ fprintf('\nMean for iEEG: %d std for iEEG %d', (mean((beta(beta < 1000 & beta > 
 fprintf('\nNo TD for mTurk: %d ', sum((beta_mturk < 1000 & beta_mturk > 0))/numel(beta_mturk))
 fprintf('\nNo TD for iEEG: %d ', sum(~(beta < 1000 & beta > 0))/numel(beta))
 
-permtest(beta_mturk(beta_mturk < 1000 & beta_mturk > 0), beta(beta > 1000 & beta < 0))
+[h,p] = ttest2(log10(beta_mturk(beta_mturk < 1000 & beta_mturk > 0)), log10(beta(beta < 1000 & beta > 0)))
 
 %% Split mturk by graph
 
@@ -59,3 +59,4 @@ for b = 1:numel(beta)
     end
 end
 saveas(gca, [ieeg_dir, 'images/all_beta.pdf'], 'pdf')
+[h,p] = ttest2(log10(beta_mod(beta_mod < 1000 & beta_mod > 0)), log10(beta_lat(beta_lat < 1000 & beta_lat > 0)))
