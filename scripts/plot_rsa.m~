@@ -125,8 +125,7 @@ if strcmp(flag, 'all')
                 if any(strcmp('tissue_segmentation_distance_from_label_3', curr_loc.Properties.VariableNames))
                    curr_loc = removevars(curr_loc, 'tissue_segmentation_distance_from_label_3');
                 end
-                idx = cellfun(@(x) any(strcmp(x,localization.Properties.VariableNames)), curr_loc.Properties.VariableNames);
-                curr_loc = removevars(curr_loc, curr_loc.Properties.VariableNames(~idx));
+                curr_loc = curr_loc{:,{localization.Properties.VariableNames{:}}}
                 localization = [localization; curr_loc];
             end
             

@@ -15,12 +15,12 @@ feature = 'lfp'; % pow or lfp
 freqs = logspace(log10(3), log10(150), 50);
 shift = 100; % how much to slide windows
 win = 500; % number of trials per window
-nBlock = (1000 - win)/shift + 1;
+nBlock = (1000 - win)/shift;
 block_indices = zeros(nBlock,2);
 st = 1;
 for b = 1:nBlock
-    block_indices(b,:) = [st,st+(win)-1];
-    st = st + shift;
+    block_indices(b,:) = [st,st+(win)];
+    
 end
 M = [0 1 1 1 0 0 0 0 0 1;
     1 0 1 1 1 0 0 0 0 0;
@@ -129,11 +129,6 @@ for subj_idx = 1:numel(subjs)
     end
     good_walk = good_walk(keep_idx);
     
-        % prewhiten
-    cfg = [];
-    cfg.derivative = 'yes';
-    curr_data = ft_preprocessing(cfg, ft_data);
-    
     for b = 1:nBlock
         
         % get trial indicies for current block
@@ -144,6 +139,11 @@ for subj_idx = 1:numel(subjs)
             continue
         end
         %% get features
+        
+        % prewhiten
+        cfg = [];
+        cfg.derivative = 'yes';
+        curr_data = ft_preprocessing(cfg, ft_data);
         nTrial = sum(curr_idx);
         
         if strcmp(feature, 'pow')
@@ -242,12 +242,10 @@ for subj_idx = 1:numel(subjs)
         D(logical(eye(nNode))) = 0;
         [Y, ~] = cmdscale(D,2);
 
-        if b== 1
-            figure(2); clf
-            scatter(Y(:,1), Y(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
-            title([subj, ' block', num2str(b)])
-            saveas(gca, [img_dir, '/MDS_', feature, '_block', num2str(b), '.png'], 'png')
-        end
+        figure(2); clf
+        scatter(Y(:,1), Y(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
+        title([subj, ' block', num2str(b)])
+        saveas(gca, [img_dir, '/MDS_', feature, '_block', num2str(b), '.png'], 'png')
         
     end
     A_corr = A_corr(sig_idx,:);
