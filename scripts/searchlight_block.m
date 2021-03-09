@@ -129,12 +129,12 @@ for subj_idx = 1:numel(subjs)
     end
     good_walk = good_walk(keep_idx);
     
-        % prewhiten
-    cfg = [];
-    cfg.derivative = 'yes';
-    curr_data = ft_preprocessing(cfg, ft_data);
     
     for b = 1:nBlock
+        % prewhiten
+        cfg = [];
+        cfg.derivative = 'yes';
+        curr_data = ft_preprocessing(cfg, ft_data);
         
         % get trial indicies for current block
         ind = block_indices(b,:);
@@ -225,14 +225,14 @@ for subj_idx = 1:numel(subjs)
         N = zeros(nNode);
         % leave one out cv
         k = nTrial;
-
+        
         for i = 1:k
-
+            
             % split
             train = true(nTrial,1);
             train(i) = false;
             test = ~train;
-
+            
             % get dist
             [d,m] = get_rdm(feats, train, test, good_walk, nNode);
             D = D + d;
@@ -241,7 +241,7 @@ for subj_idx = 1:numel(subjs)
         D = D./N;
         D(logical(eye(nNode))) = 0;
         [Y, ~] = cmdscale(D,2);
-
+        
         if b== 1
             figure(2); clf
             scatter(Y(:,1), Y(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
@@ -254,7 +254,7 @@ for subj_idx = 1:numel(subjs)
     A_hat_corr = A_hat_corr(sig_idx,:);
     N_corr = N_corr(sig_idx,:);
     full_ahat_corr = full_ahat_corr(sig_idx);
-        
+    
     save([r_dir, 'subj' subj, '/searchlight_corrs_block.mat'], 'G_corr', 'A_corr', 'A_hat_corr')
     cnt = size(block_data,1) + 1;
     num = (sum(sig_idx)*nBlock*2);
