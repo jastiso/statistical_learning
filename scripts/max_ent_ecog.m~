@@ -139,14 +139,12 @@ beta_block(beta_block > 1000) = 1000;
 beta_block(beta_block < 0) = 0;
 block_idx = [];
 beta_list = [];
-subj_list = [];
     for m = 1:nBlock
         block_idx = [block_idx; ones(nSubj,1)+(m-1)];
-        beta_list = [beta_list; beta];
-        subj_list = [subj_list; subjs'];
+        beta_list = [beta; beta];
     end
-ahat_block_data = table(subj_list, block_idx,...
-    reshape(mat_dist',[],1), block_idx, beta_list, ...
+ahat_block_data = table([subjs,subjs]', block_idx,...
+    [mat_dist(1,:)'; mat_dist(2,:)'], block_idx, beta_list, ...
     'VariableNames', [{'subj'}, {'block'}, {'dist'}, {'beta_block'}, {'beta'}]);
 writetable(ahat_block_data, [r_dir, 'ahat_block.csv']);
 
