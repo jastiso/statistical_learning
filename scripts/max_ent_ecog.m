@@ -106,7 +106,7 @@ tri_mask = logical(triu(ones(nNode),1));
 for s = 1:nSubj
     subj_data = data(data.subj==str2double(subjs{s}),:);
     for b = 1:nBlock
-        curr = subj_data((subj_data.block == blocks(b,1)) | (subj_data.block == blocks(b,2)),:);
+        curr = subj_data((subj_data.order >= blocks(b,1)) & (subj_data.block <= blocks(b,2)) & (subj_data.sess == 1),:);
         if mod(str2double(subjs{s}),2) == 0
             A = M;
         else
@@ -146,7 +146,7 @@ subj_list = [];
         subj_list = [subj_list; subjs'];
     end
 ahat_block_data = table(subj_list, block_idx,...
-    reshape(mat_dist',[],1), block_idx, beta_list, ...
+    reshape(mat_dist',[],1), reshape(beta_block', [] ,1), beta_list, ...
     'VariableNames', [{'subj'}, {'block'}, {'dist'}, {'beta_block'}, {'beta'}]);
 writetable(ahat_block_data, [r_dir, 'ahat_block.csv']);
 
