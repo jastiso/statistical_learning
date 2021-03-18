@@ -53,15 +53,11 @@ ggsave(paste( 'behavior_preprocessed/images/rt_log_ecog.png', sep = ''))
 
 summary(df_clean)
 
-# remove incorrect trials
-df_correct = dplyr::filter(df_clean, correct_raw == 1)
-df_correct = dplyr::filter(df_correct, rt_raw > 0.05)
-
 # add finger
 # log order, and get continuous trial
-finger = character(length = length(df_correct$resp))
+finger = character(length = length(df_clean$resp))
 for (t in 1:length(finger)){
-  curr_key = df_correct$resp[t]
+  curr_key = df_clean$resp[t]
   if (curr_key == 'q' | curr_key == 'p'){
     finger[t] = 'pinky'
   } else if (curr_key == 'w' | curr_key == 'o'){
@@ -76,7 +72,13 @@ for (t in 1:length(finger)){
     finger[t] = NA
   }
 }
-df_correct$finger = as.factor(finger)
+df_clean$finger = as.factor(finger)
+
+# remove incorrect trials
+df_correct = dplyr::filter(df_clean, correct_raw == 1)
+df_correct = dplyr::filter(df_correct, rt_raw > 0.05)
+df_acc = dplyr::filter(df_clean, rt_raw > 0.05)
+df_acc$correct_raw = as.factor(df_acc$correct_raw)
 
 # get recency as a factor
 stop_num = 10
@@ -90,6 +92,7 @@ f = function(x) {
 }
 recency_fact = lapply(df_correct$recency, f)
 df_correct$recency_fact = unlist(recency_fact)
+df_acc$recency_fact = unlist(lapply(df_acc$recency, f))
 
 df_modular = dplyr::filter(df_correct, graph == "modular")
 
@@ -103,7 +106,7 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 # test if points makes a difference
 
 # learn and graph
-stat_learn = lmer(data=df_correct, rt~scale((order))*graph + sex + yob + finger + typing_raw + hand_transition + scale(block)*graph + points + scale(log(recency_fact)) + scale(sess) + (1 + scale((order))*graph + scale(log(recency_fact)) |subj))
+stat_learn = lmer(data=df_correct, rt~scale((order))*graph + sex + yob + finger + hand + typing_raw + hand_transition + scale(block)*graph + points + scale(log(recency_fact)) + scale(sess) + (1 + scale((order))*graph + scale(log(recency_fact)) |subj))
 anova(stat_learn)
 
 # save residuals
@@ -123,6 +126,18 @@ anova(stat_surprisal2, stat_surprisal1, test="Chisq")
 
 anova(stat_surprisal2)
 summary(stat_surprisal2)
+
+
+# accuracy 
+contrasts(df_acc$hand_transition) <- contr.helmert(2)/2
+contrasts(df_acc$hand) <- contr.helmert(2)/2
+contrasts(df_acc$correct) <- contr.helmert(2)/2
+contrasts(df_acc$finger) <- contr.helmert(5)
+stat_acc = glmer(data=df_acc, correct_raw~scale(log(order))*graph + finger + hand_transition + scale(block)*graph + scale(log(recency_fact)) + scale(sess) +
+                  (1 + scale(log(order)) |subj),
+                family = binomial(link = "logit"))
+anova(stat_acc)
+summary(stat_acc)
 
 # permutation test: permute transition index within subject
 nSim = 500
@@ -153,6 +168,10 @@ plot + geom_histogram(aes(y=..density..),alpha=.8)
 avg_data = df_correct %>%
   group_by(order, graph) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
+
+avg_acc = df_acc %>%
+  group_by(order, graph) %>%
+  dplyr::summarise(mean_acc = mean(as.numeric(correct_raw)-1), sd_rt = sd(as.numeric(correct_raw)-1))
 
 plot = ggplot(data=avg_data, aes(x=order, y=mean_rt))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
@@ -204,18 +223,23 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   scale_fill_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))+
   ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_graph.pdf', sep = ''))
 
-avg_acc = df_clean %>%
-  group_by(order, graph) %>%
-    dplyr::summarise(mean_acc = sum(correct_raw == 1)/length(correct_raw))
-
+## acc
 nbin = 40
-bin_data_acc= data_frame(trial = c(tapply(avg_acc$order, cut(avg_acc$order, nbin), mean), 
+bin_data_graph_acc= data_frame(trial = c(tapply(avg_acc$order, cut(avg_acc$order, nbin), mean), 
                                      tapply(avg_acc$order, cut(avg_acc$order, nbin), mean)),
-                           mean_acc = c(tapply(avg_acc$mean_acc, cut(avg_acc$order, nbin), mean), 
-                                       tapply(avg_acc$mean_acc, cut(avg_acc$order, nbin), mean)))
-                          
-plot = ggplot(data=bin_data_acc, aes(x=trial, y=mean_acc))
-plot + geom_line(size=1) + ggtitle('Accuracy') +
-  theme_minimal() + labs(x = 'Trial', y = 'Acc')
-  ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_acc.png', sep = ''))
+                           mean_rt = c(tapply(filter(avg_acc, graph == "modular")$mean_acc, cut(filter(avg_acc, graph == "modular")$order, nbin), mean), 
+                                       tapply(filter(avg_acc, graph == "lattice")$mean_acc, cut(filter(avg_acc, graph == "lattice")$order, nbin), mean)),
+                           std_rt = c(tapply(filter(avg_acc, graph == "modular")$sd_rt, cut(filter(avg_acc, graph == "modular")$order, nbin), mean), 
+                                      tapply(filter(avg_acc, graph == "lattice")$sd_rt, cut(filter(avg_acc, graph == "lattice")$order, nbin), mean)),
+                           transition = c(rep("modular", times = length(tapply(avg_acc$order, cut(avg_acc$order, nbin), mean))), 
+                                          rep("lattice", times = length(tapply(avg_acc$order, cut(avg_acc$order, nbin), mean)))))
+
+
+plot = ggplot(data=bin_data_graph_acc, aes(x=trial, y=mean_rt, color = transition))
+plot + geom_line(size=1) + ggtitle('Accuracy over time, by Graph') +
+  geom_ribbon(aes(x=trial, y=mean_rt, ymax=mean_rt+std_rt, ymin = mean_rt-std_rt, fill=transition), alpha = 0.2) +
+  theme_minimal() + labs(x = 'Trial', y = 'Accuracy (%)') + scale_color_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255))) +
+  scale_fill_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))+
+  ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_graph_acc.pdf', sep = ''))
+
 

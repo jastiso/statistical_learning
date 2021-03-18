@@ -106,7 +106,7 @@ tri_mask = logical(triu(ones(nNode),1));
 for s = 1:nSubj
     subj_data = data(data.subj==str2double(subjs{s}),:);
     for b = 1:nBlock
-        curr = subj_data((subj_data.order >= blocks(b,1)) & (subj_data.block <= blocks(b,2)) & (subj_data.sess == 1),:);
+        curr = subj_data((subj_data.order >= blocks(b,1)) & (subj_data.order <= blocks(b,2)) & (subj_data.sess == 1),:);
         if mod(str2double(subjs{s}),2) == 0
             A = M;
         else

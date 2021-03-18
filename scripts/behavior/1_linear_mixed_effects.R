@@ -28,9 +28,10 @@ p
 summary(acc$total_acc)
 
 # only run this is some people have acc less than 80
+if (any(acc$total_acc < 80)){
 subj_rm = df$workerid == acc$workerid[acc$total_acc < 80]
 df = df[!subj_rm,]
-
+}
 
 ######
 # Clean up - remove columns you dont need, only get correct trials, etc
@@ -134,10 +135,6 @@ df_correct = subset(df_correct, select = -c(correct, nTries))
 df_acc = filter(df_clean, nTries == 1)
 df_acc$correct = as.factor(as.integer(df_acc$correct))
 
-df_modular_acc = filter(df_acc, is_lattice == 0)
-
-df_left = filter(df_modular, hand == 'left')
-df_right = filter(df_modular, hand == 'right')
 summary(df_correct)
 
 
@@ -159,6 +156,7 @@ nuissance_reg = lmer(data=df_correct, rt~scale((cum_trial)) + scale(log10(trial)
                        (1 + scale((cum_trial))|workerid))
 recency_fact = lapply(df_correct$recency, f)
 df_correct$recency_fact = unlist(recency_fact)
+df_acc$recency_fact = unlist(lapply(df_acc$recency, f))
 df_modular = filter(df_correct, is_lattice == 0)
 
 recency_data = data.frame( rt = resid(nuissance_reg), lag10 = df_correct$lag10, recency = df_correct$recency, graph = as.factor(df_correct$is_lattice), 
@@ -187,13 +185,14 @@ stat_learn = lmer(data=df_correct, rt~scale((cum_trial))*is_lattice + stage_num*
                                         (1 + scale((cum_trial)) + scale(log(recency_fact))|workerid))
 anova(stat_learn)
 
+
 # save residuals
 # for later plotting
 df_modular$resid = resid(lmer(data=df_modular, rt~scale((cum_trial)) + scale(log(recency_fact)) + finger + hand + hand_transition + stage_num + log10(recency) + 
                                 (1 + scale((cum_trial)) + scale(log(recency_fact))|workerid)))
 
 # for max_ent analyses
-max_ent_data = select(df_correct, c('walk_id', 'workerid', 'trial', 'is_lattice'))
+max_ent_data = dplyr::select(df_correct, c('walk_id', 'workerid', 'trial', 'is_lattice', 'cum_trial'))
 max_ent_data$resid = resid(stat_learn)
 write.csv(max_ent_data, file = 'data/preprocessed/residuals.csv')
 
@@ -218,14 +217,14 @@ anova(stat_surprisal1, stat_surprisal2, test="Chisq")
 
 
 ### Accuracy
-contrasts(df_modular_acc$hand_transition) <- contr.helmert(2)/2
-contrasts(df_modular_acc$hand) <- contr.helmert(2)/2
-contrasts(df_modular_acc$correct) <- contr.helmert(2)/2
-contrasts(df_modular_acc$finger) <- contr.helmert(5)
-stat_acc = glmer(data=df_modular_acc, correct~scale(cum_trial)*is_crosscluster + scale(log10(trial)) + stage_num + finger + hand + 
-                   hand_transition + (1|workerid), 
+contrasts(df_acc$hand_transition) <- contr.helmert(2)/2
+contrasts(df_acc$hand) <- contr.helmert(2)/2
+contrasts(df_acc$correct) <- contr.helmert(2)/2
+contrasts(df_acc$finger) <- contr.helmert(5)
+stat_acc = glmer(data=df_acc, correct~scale((cum_trial))*is_lattice + stage_num*is_lattice + finger + hand + hand_transition + scale(log(recency_fact)) + 
+                   (1 + scale((cum_trial))|workerid), 
                  family = binomial(link = "logit"))
-anova(stat_acc)
+summary(stat_acc)
 
 
 
@@ -285,6 +284,10 @@ ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_cc', ext,'.png', sep
 avg_graph = df_correct %>%
   group_by(cum_trial, is_lattice) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
+
+avg_acc = df_acc %>%
+  group_by(cum_trial, is_lattice) %>%
+  dplyr::summarise(mean_rt = mean(as.numeric(correct)-1), sd_rt = sd(as.numeric(correct)-1))
 
 plot = ggplot(data=avg_graph, aes(x=cum_trial, y=mean_rt, color=is_lattice))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
@@ -357,6 +360,25 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255))) +
   scale_fill_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))
 ggsave(paste( 'experiment/data/preprocessed/images/rt_bin_mturk_graph.pdf', sep = ''))
+
+## acc
+nbin = 40
+bin_data_graph_acc= data_frame(trial = c(tapply(avg_acc$cum_trial, cut(avg_acc$cum_trial, nbin), mean), 
+                                     tapply(avg_acc$cum_trial, cut(avg_acc$cum_trial, nbin), mean)),
+                           mean_rt = c(tapply(filter(avg_acc, is_lattice == 0)$mean_rt, cut(filter(avg_acc, is_lattice == 0)$cum_trial, nbin), mean), 
+                                       tapply(filter(avg_acc, is_lattice == 1)$mean_rt, cut(filter(avg_acc, is_lattice == 1)$cum_trial, nbin), mean)),
+                           mean_std = c(tapply(filter(avg_acc, is_lattice == 0)$sd_rt, cut(filter(avg_acc, is_lattice == 0)$cum_trial, nbin), mean), 
+                                        tapply(filter(avg_acc, is_lattice == 1)$sd_rt, cut(filter(avg_acc, is_lattice == 1)$cum_trial, nbin), mean)),
+                           transition = c(rep("modular", times = length(tapply(avg_acc$cum_trial, cut(avg_acc$cum_trial, nbin), mean))), 
+                                          rep("lattice", times = length(tapply(avg_acc$cum_trial, cut(avg_acc$cum_trial, nbin), mean)))))
+
+
+plot = ggplot(data=bin_data_graph_acc, aes(x=trial, y=mean_rt, color = transition))
+plot + geom_line(size=1) + ggtitle('Accuracy over time, by Graph') +
+  geom_ribbon(aes(x=trial, y=mean_rt, ymax=mean_rt+mean_std, ymin = mean_rt-mean_std,fill=transition), alpha = 0.2) +
+  theme_minimal() + labs(x = 'Trial', y = 'Accuracy (%)') + scale_color_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255))) +
+  scale_fill_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))
+ggsave(paste( 'experiment/data/preprocessed/images/rt_bin_mturk_graph_acc.pdf', sep = ''))
 
 
 # cross_cluster
