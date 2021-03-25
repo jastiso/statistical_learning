@@ -128,6 +128,7 @@ for subj_idx = 1:numel(subjs)
         keep_idx = keep_idx & (good_events(:,2) - good_events(:,1) > .2*srate);
     end
     good_walk = good_walk(keep_idx);
+    curr_trials = curr_trials(keep_idx);
     
     % prewhiten
     cfg = [];
