@@ -75,7 +75,6 @@ for i = 1:nGraph
     % Loop over beta values:
     for j = 1:nSim
         null_sep = zeros(1,nchoosek(nNode,K)/2);
-        null_sep_pca = zeros(1,nchoosek(nNode,K)/2);
         A_hat = (1 - exp(-test_betas(j)))*A*(eye(nNode) - exp(-test_betas(j))*A)^(-1);
         %A_hat = round(A_hat,4);
         ks = sum(A_hat ~= 0,1);
@@ -93,6 +92,7 @@ for i = 1:nGraph
         if strcmp(graphs{i},'mod')
             mod1 = 1:5;
             mod2 = 6:10;
+            %num = mean([pdist(Y(mod1,:)), pdist(Y(mod2,:))]);
             denom = 0;
             num = 0;
             denom_pca = 0;
@@ -114,8 +114,7 @@ for i = 1:nGraph
                     denom_pca = denom_pca + mean(sqrt((y_pca(mod2,1) - y_pca(n,1)).^2 + (y_pca(mod2,2) - y_pca(n,2)).^2));
                 end
             end
-            num = num/nNode;
-            num_pca = num_pca/nNode;
+            num = num/nNode
             denom = denom/nNode;
             denom_pca = denom_pca/nNode;
             module_sep{j} = num - denom;
@@ -130,6 +129,7 @@ for i = 1:nGraph
                 if any(mod1 == mod2)
                     warning('Your set selection process is wrong')
                 else
+                    %num = mean([pdist(Y(mod1,:)), pdist(Y(mod2,:))]);
                     denom = 0;
                     num = 0;
                     denom_pca = 0;
@@ -155,11 +155,10 @@ for i = 1:nGraph
                     null_sep(n) = num - denom;
                     denom_pca = denom_pca/nNode;
                     num_pca = num_pca/nNode;
-                    null_sep_pca(n) = num_pca - denom_pca;
+                    null_sep(n) = num_pca - denom_pca;
                 end
             end
             module_sep{j} = null_sep;
-            module_sep_pca{j} = null_sep_pca;
         end
         
         % Use all pairs heuristic:
@@ -192,7 +191,6 @@ for i = 1:nGraph
     measures_struct.([graphs{i}, '_rate_distortion_lower']) = rate_distortion_lower;
     measures_struct.([graphs{i}, '_compressibility']) = compressibility;
     measures_struct.([graphs{i}, '_module_sep']) = module_sep;
-    measures_struct.([graphs{i}, '_module_sep_pca']) = module_sep_pca;
 end
 
 % Save measures:
@@ -220,7 +218,6 @@ xlabel('log10( beta )'); ylabel('Compressibility')
 saveas(gca, [img_dir, 'sim_compressibility.pdf']);
 
 null_dists = reshape([measures_struct.lat_module_sep{:}],126,nSim);
-null_dists_pca = reshape([measures_struct.lat_module_sep_pca{:}],126,nSim);
 figure(2); clf
 plot(log10(test_betas), null_dists, 'color', [101/255,111/255,147/255], 'linewidth', 2); hold on
 plot(log10(test_betas), [measures_struct.mod_module_sep{:}], 'color', [174/255,116/255,133/255], 'linewidth', 4);
@@ -232,15 +229,4 @@ for b = 1:numel(beta)
     end
 end
 saveas(gca, [img_dir, 'sim_mod_dist.png']);
-
-figure(2); clf
-plot(log10(test_betas), null_dists_pca, 'color', [101/255,111/255,147/255], 'linewidth', 2); hold on
-plot(log10(test_betas), [measures_struct.mod_module_sep_pca{:}], 'color', [174/255,116/255,133/255], 'linewidth', 4);
-for b = 1:numel(beta)
-    if (mod(str2double(subjs{b}),2) == 0) && (str2double(subjs{b}) ~= 6)
-        plot([log10(beta(b)), log10(beta(b))],...
-            [min([measures_struct.lat_module_sep_pca{:}])-0.2,max([measures_struct.mod_module_sep_pca{:}])+0.2], 'k');
-    end
-end
-saveas(gca, [img_dir, 'sim_mod_dist_pca.png']);
 

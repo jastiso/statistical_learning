@@ -283,11 +283,11 @@ ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_cc', ext,'.png', sep
 
 avg_graph = df_correct %>%
   group_by(cum_trial, is_lattice) %>%
-  dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
+  dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw)/sqrt(length(rt_raw)))
 
 avg_acc = df_acc %>%
   group_by(cum_trial, is_lattice) %>%
-  dplyr::summarise(mean_rt = mean(as.numeric(correct)-1), sd_rt = sd(as.numeric(correct)-1))
+  dplyr::summarise(mean_rt = mean(as.numeric(correct)-1), sd_rt = sd(as.numeric(correct)-1)/sqrt(length(correct)))
 
 plot = ggplot(data=avg_graph, aes(x=cum_trial, y=mean_rt, color=is_lattice))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +

@@ -84,10 +84,10 @@ bv_df = read.csv('ephys_analysis/ahat_block.csv')
 bv_df = merge(bv_df, demo, by='subj')
 bv_df$subj = as.factor(bv_df$subj)
 bv_df$beta_rank = as.factor(rank(bv_df$beta))
-demo$is_lat = as.factor(strtoi(demo$subj) %% 2)
+bv_df$is_lat = as.factor(strtoi(bv_df$subj) %% 2)
 bv_df_ext = bv_df[bv_df$beta_block >= 1000 | bv_df$beta_block <= 0,]
 bv_df = bv_df[bv_df$beta_block < 1000 & bv_df$beta_block > 0,]
-bv_df$beta_diff = (bv_df$beta) - (bv_df$beta_block)
+bv_df$beta_diff = log10(bv_df$beta) - log10(bv_df$beta_block)
 bv_df = bv_df[bv_df$beta < 1000 & bv_df$beta > 0,]
 bv_df$beta_diff_log = log10(abs(bv_df$beta_diff))
 summary(bv_df)
@@ -99,13 +99,12 @@ p = ggplot(data=bv_df, aes(x=block, y=(beta_diff_log), group = subj, color=as.fa
   theme_minimal()
 p
 ggsave("ephys_img/ahat_block.eps",p)
-stat = lmp(data=bv_df, (beta_block)~block)
+stat = lmer(data=bv_df, beta_diff_log~scale(block) + (1|subj))
 anova(stat)
-stat = t.test(dplyr::filter(bv_df, block==1)$beta_diff, dplyr::filter(bv_df, block==2)$beta_diff)
-stat
+summary(stat)
 
 p = ggplot(data=bv_df_ext, aes(x=block)) + 
-  geom_bar(aes(fill=is_lat))  + scale_fill_manual(values=c(rgb(125/255,138/255,95/255), rgb(101/255,111/255,147/255))) +
+  geom_bar(aes(fill=as.factor(beta_block)))  + #scale_fill_manual(values=c(rgb(125/255,138/255,95/255), rgb(101/255,111/255,147/255))) +
   theme_minimal() 
 p
 ggsave("ephys_img/ahat_block_ext.pdf",p)
@@ -116,7 +115,7 @@ bv_df_mturk$subj = as.factor(bv_df_mturk$subj)
 bv_df_mturk$beta_rank = as.factor(rank(bv_df_mturk$beta))
 bv_df_mturk_ext = bv_df_mturk[bv_df_mturk$beta_block >= 1000 | bv_df_mturk$beta_block <= 0,]
 bv_df_mturk = bv_df_mturk[bv_df_mturk$beta_block < 1000 & bv_df_mturk$beta_block > 0,]
-bv_df_mturk$beta_diff = (bv_df_mturk$beta) - (bv_df_mturk$beta_block)
+bv_df_mturk$beta_diff = log10(bv_df_mturk$beta) - log10(bv_df_mturk$beta_block)
 bv_df_mturk = bv_df_mturk[bv_df_mturk$beta < 1000 & bv_df_mturk$beta > 0,]
 bv_df_mturk$beta_diff_log = log10(abs(bv_df_mturk$beta_diff))
 summary(bv_df_mturk)
@@ -128,13 +127,12 @@ p = ggplot(data=bv_df_mturk, aes(x=block, y=(beta_diff_log), group = subj, color
   theme_minimal()
 p
 ggsave("ephys_img/ahat_block_mturk.eps",p)
-stat = lmp(data=bv_df, (beta_block)~block)
+stat = lmer(data=bv_df_mturk,beta_diff_log~block+ (1|subj))
 anova(stat)
-stat = t.test(dplyr::filter(bv_df, block==1)$beta_diff, dplyr::filter(bv_df, block==2)$beta_diff)
-stat
+summary(stat)
 
 p = ggplot(data=bv_df_mturk_ext, aes(x=block)) + 
-  geom_bar()  + #scale_fill_manual(values=c(rgb(125/255,138/255,95/255), rgb(101/255,111/255,147/255))) +
+  geom_bar(aes(fill=as.factor(beta_block)))  + #scale_fill_manual(values=c(rgb(125/255,138/255,95/255), rgb(101/255,111/255,147/255))) +
   theme_minimal() 
 p
 ggsave("ephys_img/ahat_block_mturk_ext.pdf",p)
@@ -142,7 +140,7 @@ ggsave("ephys_img/ahat_block_mturk_ext.pdf",p)
 
 ################################################## Combined
 
-data_all = merge(b_df,df, by=c('subj','sex','yob'))
+data_all = merge(b_df,df, by=c('subj','sex','yob','block','is_lat'))
 summary(data_all)
 
 df_avg = dplyr::summarise(group_by(data_all, subj,space,block,beta_rank,beta), mean_corr = mean(corr), 
@@ -153,7 +151,7 @@ df_elec_avg = dplyr::summarise(group_by(data_all, elec,subj,space,block,beta_ran
 
 pd = position_dodge(0.05)
 p = ggplot(data=filter(df_avg, space=='latent', block == 1), aes(x=log10(beta), y=mean_corr, color=beta_rank, group=subj)) + 
-   geom_point(size=3, position=pd) + 
+   geom_point(size=3) + 
   theme_minimal() + scale_color_manual(values=brewer.pal(9,'OrRd'))
 p
 

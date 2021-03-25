@@ -115,8 +115,8 @@ write.csv(df_correct, file = 'behavior_preprocessed/residuals.csv')
 
 
 ### surprisal
-stat_surprisal1 = lmer(data=df_modular, rt~scale(log10(order))*transition + sex + scale(yob) + typing_raw + finger + points + hand + hand_transition +  scale(block) + scale(log(recency_fact)) + sess + 
-                         (1 + scale(log10(order))*transition |subj))
+stat_surprisal1 = lmer(data=df_modular, rt~scale((order))*transition + sex + scale(yob) + typing_raw + finger + points + hand + hand_transition +  scale(block) + scale(log(recency_fact)) + sess + 
+                         (1 + scale((order))*transition |subj))
 
 
 stat_surprisal2 = lmer(data=df_modular, rt~scale((order))*transition +sex + scale(yob) + finger + points + typing_raw + hand + hand_transition + scale(block) + scale(log(recency_fact)) + sess + 
@@ -133,11 +133,17 @@ contrasts(df_acc$hand_transition) <- contr.helmert(2)/2
 contrasts(df_acc$hand) <- contr.helmert(2)/2
 contrasts(df_acc$correct) <- contr.helmert(2)/2
 contrasts(df_acc$finger) <- contr.helmert(5)
-stat_acc = glmer(data=df_acc, correct_raw~scale(log(order))*graph + finger + hand_transition + scale(block)*graph + scale(log(recency_fact)) + scale(sess) +
-                  (1 + scale(log(order)) |subj),
+df_acc$order_sq = (scale((df_acc$order))^2)
+stat_acc1 = glmer(data=df_acc, correct_raw~order_sq*graph + finger + hand_transition + scale(block)*graph + scale(log(recency_fact)) + scale(sess) +
+                  (1 + order_sq |subj),
                 family = binomial(link = "logit"))
-anova(stat_acc)
-summary(stat_acc)
+stat_acc2 = glmer(data=df_acc, correct_raw~scale((order))*graph + finger + hand_transition + scale(block)*graph + scale(log(recency_fact)) + scale(sess) +
+                    (1 + scale((order)) |subj),
+                  family = binomial(link = "logit"))
+anova(stat_acc1, stat_acc2, test="Chisq")
+
+summary(stat_acc1)
+summary(stat_acc2)
 
 # permutation test: permute transition index within subject
 nSim = 500
@@ -167,11 +173,11 @@ plot + geom_histogram(aes(y=..density..),alpha=.8)
 
 avg_data = df_correct %>%
   group_by(order, graph) %>%
-  dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
+  dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw)/sqrt(length(rt_raw)))
 
 avg_acc = df_acc %>%
   group_by(order, graph) %>%
-  dplyr::summarise(mean_acc = mean(as.numeric(correct_raw)-1), sd_rt = sd(as.numeric(correct_raw)-1))
+  dplyr::summarise(mean_acc = mean(as.numeric(correct_raw)-1), sd_rt = sd(as.numeric(correct_raw)-1)/sqrt(length(correct_raw)))
 
 plot = ggplot(data=avg_data, aes(x=order, y=mean_rt))
 plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
