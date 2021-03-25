@@ -1,4 +1,4 @@
-%% Compare theta power at within vs between cluster trantisions
+%% Get similarity matrices for smaller blocks of trials
 
 clear
 clc
@@ -13,8 +13,8 @@ addpath(genpath('/Users/stiso/Documents/Code/graph_learning/functions/'))
 subjs = [ {'1'},{'2'},{'3'},{'4'},{'5'},{'6'},{'7'},{'8'},{'10'},{'12'}];
 feature = 'lfp'; % pow or lfp
 freqs = logspace(log10(3), log10(150), 50);
-shift = 10; % how much to slide windows
-win = 900; % number of trials per window
+shift = 100; % how much to slide windows
+win = 500; % number of trials per window
 nBlock = (1000 - win)/shift + 1;
 block_indices = zeros(nBlock,2);
 st = 1;
@@ -135,10 +135,12 @@ for subj_idx = 1:numel(subjs)
     ft_data = ft_preprocessing(cfg, ft_data);
     
     for b = 1:nBlock
+        clear feats curr_data
         
         % get trial indicies for current block
         ind = block_indices(b,:);
         curr_idx = ((curr_trials > ind(1)) & (curr_trials <= ind(2)))' & keep_idx;
+        curr_walk = good_walk(curr_idx);
         
         if sum(curr_idx) == 0
             continue
@@ -173,7 +175,7 @@ for subj_idx = 1:numel(subjs)
             end
             cfg.trl = cfg.trl(curr_idx,:);
             curr_data = ft_redefinetrial(cfg,ft_data);
-            % reshape into Trial x (timepoint*elec)
+            % reshape into Trial x timepoint x elec
             feats = zeros(nTrial, nElec, size(curr_data.trial{1},2));
             for i = 1:nTrial
                 feats(i,:,:) = curr_data.trial{i};
@@ -201,7 +203,7 @@ for subj_idx = 1:numel(subjs)
                 test = ~train;
                 
                 % get dist
-                [d,m] = get_rdm(curr_feats, train, test, good_walk, nNode);
+                [d,m] = get_rdm(curr_feats, train, test, curr_walk, nNode);
                 D = D + d;
                 N = N + m;
             end
@@ -237,7 +239,7 @@ for subj_idx = 1:numel(subjs)
                 test = ~train;
                 
                 % get dist
-                [d,m] = get_rdm(feats, train, test, good_walk, nNode);
+                [d,m] = get_rdm(feats, train, test, curr_walk, nNode);
                 D = D + d;
                 N = N + m;
             end
