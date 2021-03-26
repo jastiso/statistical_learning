@@ -29,9 +29,6 @@ stat_latent = lmer(data=filter(df, space=='latent'),corr~block*is_lat + sex + yo
 anova(stat_latent)
 summary(stat_latent)
 
-stat = t.test(filter(df,space=='latent',block==1)$corr,filter(df,space=='latent', block==2)$corr, paired=TRUE)
-stat
-
 df$uniqueid = paste(df$subj, df$space, sep = "_")
 df_avg = dplyr::summarise(group_by(df, subj,space,block, uniqueid), is_lat = is_lat[1], mean_corr = mean(corr), sd_corr = sd(corr)/sqrt(length(corr)))
 pd = position_dodge(0.05)
@@ -46,7 +43,7 @@ pd = position_dodge(0.05)
 p = ggplot(data=filter(df_avg,space=='latent'), aes(x=block, y=mean_corr, color=is_lat, group=uniqueid)) + #geom_boxplot(aes(x=block, y=mean_corr, group=block), position=pd) +
   geom_errorbar(aes(ymin=mean_corr-sd_corr, ymax = mean_corr+sd_corr), color='black', width=0.01, position=pd) +
   geom_line(aes(color=is_lat),position=pd) + geom_point(aes(color=is_lat),size=3, position=pd) + 
-  theme_minimal() + scale_color_manual(values=c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))
+  theme_minimal() + scale_color_manual(values=c(rgb(101/255,111/255,147/255), rgb(174/255,116/255,133/255)))
 p
 
 
@@ -66,16 +63,42 @@ p
 ggsave("ephys_img/ahat_seq.pdf",p)
 
 p = ggplot(data=b_df, aes(x=trial, y=(dist), group = subj, color=is_lat)) + 
-  geom_line() + scale_color_manual(values=c(rgb(125/255,138/255,95/255), rgb(101/255,111/255,147/255)))+
+  geom_line() + scale_color_manual(values=c(rgb(174/255,116/255,133/255), rgb(101/255,111/255,147/255)))+
   theme_minimal() 
 p
 ggsave("ephys_img/ahat_seq.pdf",p)
 
-b_df$block = floor(b_df$trial/501)
-b_df_avg = dplyr::summarise(group_by(b_df, subj, beta, sex, yob, block), mean_dist = mean(dist), sd_dist = sd(dist))
+b_df_avg = dplyr::data_frame(subj = character(0), yob = numeric(), sex = character(0), beta = numeric(),
+                      block = numeric(), mean_dist = numeric(), is_lat = numeric())
+shift = 100
+win = 500
+nBlock = (1000 - win)/shift + 1
+st = 1
+block_inds = list()
+for (i in seq(1,nBlock)){
+  block_inds = c(block_inds, list(c(st, st+win-1)))
+  st = st + shift
+}
 
-p = ggplot(data=dplyr::filter(b_df_avg, block < 2), aes(x=block, y=mean_dist, group = subj, color=is_lat)) + 
-  geom_line() +scale_color_manual(values=c(rgb(125/255,138/255,95/255), rgb(101/255,111/255,147/255))) +
+for (s in unique(b_df$subj)){
+  blocked = list()
+  l = nrow(b_df_avg) + 1
+  b_df_avg[l:(l+nBlock-1),'subj'] = rep(s, ntimes=nBlock)
+  b_df_avg$yob[l:(l+nBlock-1)] = b_df[b_df$subj==s,'yob'][1]
+  b_df_avg$sex[l:(l+nBlock-1)] =  as.character(b_df[b_df$subj==s,'sex'][1])
+  b_df_avg$beta[l:(l+nBlock-1)] =  b_df[b_df$subj==s,'beta'][1]
+  b_df_avg$is_lat[l:(l+nBlock-1)] =  as.numeric(b_df[b_df$subj==s,'is_lat'][1]) - 1
+  b_df_avg$block[l:(l+nBlock-1)] = seq(1,nBlock)
+  curr_dist = b_df[b_df$subj == s, 'dist']
+  for (b in seq(1,nBlock)){
+    blocked = c(blocked, mean(curr_dist[seq(block_inds[[b]][1],block_inds[[b]][2])]))
+  }
+  b_df_avg$mean_dist[l:(l+nBlock-1)] = unlist(blocked)
+}
+b_df_avg$subj = as.factor(b_df_avg$subj)
+b_df_avg$is_lat = as.factor(b_df_avg$is_lat)
+p = ggplot(data=b_df_avg, aes(x=block, y=mean_dist, group = subj, color=is_lat)) + 
+  geom_line() +scale_color_manual(values=c(rgb(174/255,116/255,133/255), rgb(101/255,111/255,147/255))) +
   theme_minimal() 
 p
 
@@ -93,13 +116,13 @@ bv_df$beta_diff_log = log10(abs(bv_df$beta_diff))
 summary(bv_df)
 
 pd = position_dodge(0.05)
-p = ggplot(data=bv_df, aes(x=block, y=(beta_diff_log), group = subj, color=as.factor(beta_rank))) + 
+p = ggplot(data=bv_df, aes(x=block, y=log10(beta_block), group = subj, color=as.factor(beta_rank))) + 
   geom_line(position=pd) + geom_point(size=3, position=pd) + 
   scale_color_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(10)) +
   theme_minimal()
 p
 ggsave("ephys_img/ahat_block.eps",p)
-stat = lmer(data=bv_df, beta_diff_log~scale(block) + (1|subj))
+stat = lmer(data=bv_df, log10(beta_block)~scale(block) + (1|subj))
 anova(stat)
 summary(stat)
 
@@ -121,13 +144,13 @@ bv_df_mturk$beta_diff_log = log10(abs(bv_df_mturk$beta_diff))
 summary(bv_df_mturk)
 
 pd = position_dodge(0.05)
-p = ggplot(data=bv_df_mturk, aes(x=block, y=(beta_diff_log), group = subj, color=as.factor(beta_rank))) + 
+p = ggplot(data=bv_df_mturk, aes(x=block, y=log10(beta_block), group = subj, color=as.factor(beta_rank))) + 
   geom_line(position=pd) + geom_point(size=3, position=pd) + 
   scale_color_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(25)) +
   theme_minimal()
 p
 ggsave("ephys_img/ahat_block_mturk.eps",p)
-stat = lmer(data=bv_df_mturk,beta_diff_log~block+ (1|subj))
+stat = lmer(data=bv_df_mturk,beta_diff_log~(block)+ (1|subj))
 anova(stat)
 summary(stat)
 
@@ -140,23 +163,24 @@ ggsave("ephys_img/ahat_block_mturk_ext.pdf",p)
 
 ################################################## Combined
 
-data_all = merge(b_df,df, by=c('subj','sex','yob','block','is_lat'))
+b_df_avg$sex = as.factor(b_df_avg$sex)
+b_df_avg = b_df_avg[b_df_avg$subj != '18',]
+latent_df = dplyr::filter(df, space=='latent')
+data_all = merge(b_df_avg, latent_df, by=c('subj','sex','yob','block','is_lat'))
 summary(data_all)
-
-df_avg = dplyr::summarise(group_by(data_all, subj,space,block,beta_rank,beta), mean_corr = mean(corr), 
+data_all$beta_rank = as.factor(rank(data_all$beta))
+df_avg = dplyr::summarise(group_by(data_all, subj,block,beta_rank,beta), mean_corr = mean(corr),
                           full_corr = mean(full_corr), sd_corr = sd(corr)/sqrt(length(corr)), sex = sex[1], yob = yob[1])
-df_elec_avg = dplyr::summarise(group_by(data_all, elec,subj,space,block,beta_rank,beta), 
-                               full_corr = mean(full_corr), dist = mean(dist), mean_corr = mean(corr), 
-                               sd_corr = sd(corr)/sqrt(length(corr)), sex = sex[1], yob = yob[1])
+
 
 pd = position_dodge(0.05)
-p = ggplot(data=filter(df_avg, space=='latent', block == 1), aes(x=log10(beta), y=mean_corr, color=beta_rank, group=subj)) + 
+p = ggplot(data=filter(df_avg, block == nBlock), aes(x=log10(beta), y=mean_corr, color=beta_rank, group=subj)) + 
    geom_point(size=3) + 
   theme_minimal() + scale_color_manual(values=brewer.pal(9,'OrRd'))
 p
 
 pd = position_dodge(0.05)
-tmp = filter(df_avg, space == 'latent', block == 1)
+tmp = filter(df_avg, block == 1)
 stat = lm(data=tmp, mean_corr ~ full_corr + sex + yob)
 tmp$resid = resid(stat)
 p = ggplot(data=filter(tmp, beta != 1000), aes(x=log10(beta), y=resid)) + 
@@ -164,8 +188,6 @@ p = ggplot(data=filter(tmp, beta != 1000), aes(x=log10(beta), y=resid)) +
   theme_minimal() + scale_color_manual(values=brewer.pal(9,'OrRd'))
 p
 
-b_df_avg$block = b_df_avg$block + 1
-df_avg = merge(df_avg, b_df_avg, by = c('subj','block'))
 stat = lm(data=filter(tmp, beta != 1000), mean_corr~log10(beta) + full_corr + sex + yob)
 anova(stat)
 summary(stat)
