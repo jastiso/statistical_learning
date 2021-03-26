@@ -173,6 +173,7 @@ for s = 1:numel(subjs)
                 denom = denom + mean(sqrt((Y(mod1,1) - Y(n,1)).^2 + (Y(mod1,2) - Y(n,2)).^2));
             end
         end
+        num = num/nNode;
         denom = denom/nNode;
         sep(s) = num - denom;
     else

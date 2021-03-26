@@ -45,7 +45,7 @@ p = ggplot(data=filter(df_avg,space=='latent'), aes(x=block, y=mean_corr, color=
   geom_line(aes(color=is_lat),position=pd) + geom_point(aes(color=is_lat),size=3, position=pd) + 
   theme_minimal() + scale_color_manual(values=c(rgb(101/255,111/255,147/255), rgb(174/255,116/255,133/255)))
 p
-
+ggsave("ephys_img/block_rsa_graph.eps",p)
 
 ############################################# Ahat static beta
 b_df = read.csv('ephys_analysis/ahat_seq.csv')
