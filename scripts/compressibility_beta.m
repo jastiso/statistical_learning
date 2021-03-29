@@ -37,17 +37,14 @@ L = [0 1 1 0 0 0 0 0 1 1;
 graphs = [{'mod'},{'lat'}];
 nGraph = numel(graphs);
 
-trans1 = [253,224,239]./255;
-trans2 = [230,245,208]./255;
-within1 = [233,163,201]./255;
-within2 = [161,215,106]./255;
-center1 = [197,27,125]./255;
-center2 = [77,146,33]./255;
-cluster_colors = [trans1; within1; center1; within1; trans1; trans2; within2; center2; within2; trans2];
-
+trans1 = [239,169,186]./255;
+trans2 = [177,191,146]./255;
+within1 = [174,116,133]./255;
+within2 = [126,138,96]./255;
+cluster_colors = [trans1; within1; within1; within1; trans1; trans2; within2; within2; within2; trans2];
 nSim = 1000;
 test_betas = (logspace(-3,3,1000));
-K=5;
+K=500; %number of random slelections of modules
 norm = false;
 
 %% get compressibility
@@ -69,13 +66,13 @@ for i = 1:nGraph
     rate_distortion_upper = cell(nSim, 1);
     rate_distortion_lower = cell(nSim, 1);
     compressibility = cell(nSim, 1);
-    module_sep = cell(nSim,1);
+    module_sep_mds = cell(nSim,1);
     module_sep_pca = cell(nSim,1);
     
     % Loop over beta values:
     for j = 1:nSim
-        null_sep = zeros(1,nchoosek(nNode,K)/2);
-        null_sep_pca = zeros(1,nchoosek(nNode,K)/2);
+        null_sep = zeros(1,K);
+        null_sep_pca = zeros(1,K);
         A_hat = (1 - exp(-test_betas(j)))*A*(eye(nNode) - exp(-test_betas(j))*A)^(-1);
         %A_hat = round(A_hat,4);
         ks = sum(A_hat ~= 0,1);
@@ -84,81 +81,74 @@ for i = 1:nGraph
         
         % plot A_hat and get separability of modules with two methods
         [Y, ~] = cmdscale(A_hat_dist,2);
+        
         % now with pca
         coeff = pca(A_hat_dist);
         x = A_hat_dist - mean(A_hat_dist);
         y_pca = x*coeff;
         y_pca = y_pca(:,1:2);
-        
+%         figure(2); clf
+%         scatter(y_pca(:,1), y_pca(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
+%         pause(0.05)
+
         if strcmp(graphs{i},'mod')
-            mod1 = 1:5;
-            mod2 = 6:10;
-            denom = 0;
-            num = 0;
-            denom_pca = 0;
-            num_pca = 0;
+            mod1 = 2:4;
+            mod2 = 7:9;
+            curr_dist = 0;
+            curr_dist_pca = 0;
             for n = 1:nNode
                 mod_flag = any(n == mod1);
                 
                 if mod_flag
-                    num = num + mean(sqrt((Y(mod1,1) - Y(n,1)).^2 + (Y(mod1,2) - Y(n,2)).^2));
-                    denom = denom + mean(sqrt((Y(mod2,1) - Y(n,1)).^2 + (Y(mod2,2) - Y(n,2)).^2));
+                    tmp_dist = module_sep(Y,mod1,n);
+                    curr_dist = curr_dist + tmp_dist;
                     % pca
-                    num_pca = num_pca + mean(sqrt((y_pca(mod1,1) - y_pca(n,1)).^2 + (y_pca(mod1,2) - y_pca(n,2)).^2));
-                    denom_pca = denom_pca + mean(sqrt((y_pca(mod2,1) - y_pca(n,1)).^2 + (y_pca(mod2,2) - y_pca(n,2)).^2));
+                    tmp_dist = module_sep(y_pca,mod1,n);
+                    curr_dist_pca = curr_dist_pca + tmp_dist;
                 else
-                    num = num + mean(sqrt((Y(mod2,1) - Y(n,1)).^2 + (Y(mod2,2) - Y(n,2)).^2));
-                    denom = denom + mean(sqrt((Y(mod1,1) - Y(n,1)).^2 + (Y(mod1,2) - Y(n,2)).^2));
-                     % pca
-                    num_pca = num_pca + mean(sqrt((y_pca(mod1,1) - y_pca(n,1)).^2 + (y_pca(mod1,2) - y_pca(n,2)).^2));
-                    denom_pca = denom_pca + mean(sqrt((y_pca(mod2,1) - y_pca(n,1)).^2 + (y_pca(mod2,2) - y_pca(n,2)).^2));
+                    tmp_dist = module_sep(Y,mod2,n);
+                    curr_dist = curr_dist + tmp_dist;
+                    % pca
+                    tmp_dist = module_sep(y_pca,mod2,n);
+                    curr_dist_pca = curr_dist_pca + tmp_dist;
                 end
             end
-            num = num/nNode;
-            num_pca = num_pca/nNode;
-            denom = denom/nNode;
-            denom_pca = denom_pca/nNode;
-            module_sep{j} = num - denom;
-            module_sep_pca{j} = num_pca - denom_pca;
+            module_sep_mds{j} = curr_dist/nNode;
+            module_sep_pca{j} = curr_dist_pca/nNode;
         else
-            C = nchoosek(1:10,K);
-            for u = 1:(size(C,1)/2)
-                mod1 = C(u,:);
-                mod2 = C((end-(u-1)),:);
+            for u = 1:K
+                nodes = datasample(1:nNode, 6, 'Replace', false);
+                mod1 = nodes(1:3);
+                mod2 = nodes(4:6);
                 
                 % check if these overlap
                 if any(mod1 == mod2)
                     warning('Your set selection process is wrong')
                 else
-                    denom = 0;
-                    num = 0;
-                    denom_pca = 0;
-                    num_pca = 0;
+                    curr_dist = 0;
+                    curr_dist_pca = 0;
                     for n = 1:nNode
                         mod_flag = any(n == mod1);
+                        
                         if mod_flag
-                            num = num + mean(sqrt((Y(mod1,1) - Y(n,1)).^2 + (Y(mod1,2) - Y(n,2)).^2));
-                            denom = denom + mean(sqrt((Y(mod2,1) - Y(n,1)).^2 + (Y(mod2,2) - Y(n,2)).^2));
+                            tmp_dist = module_sep(Y,mod1,n);
+                            curr_dist = curr_dist + tmp_dist;
                             % pca
-                            num_pca = num_pca + mean(sqrt((y_pca(mod1,1) - y_pca(n,1)).^2 + (y_pca(mod1,2) - y_pca(n,2)).^2));
-                            denom_pca = denom_pca + mean(sqrt((y_pca(mod2,1) - y_pca(n,1)).^2 + (y_pca(mod2,2) - y_pca(n,2)).^2));
+                            tmp_dist = module_sep(y_pca,mod1,n);
+                            curr_dist_pca = curr_dist_pca + tmp_dist;
                         else
-                            num = num + mean(sqrt((Y(mod2,1) - Y(n,1)).^2 + (Y(mod2,2) - Y(n,2)).^2));
-                            denom = denom + mean(sqrt((Y(mod1,1) - Y(n,1)).^2 + (Y(mod1,2) - Y(n,2)).^2));
+                            tmp_dist = module_sep(Y,mod2,n);
+                            curr_dist = curr_dist + tmp_dist;
                             % pca
-                            num_pca = num_pca + mean(sqrt((y_pca(mod1,1) - y_pca(n,1)).^2 + (y_pca(mod1,2) - y_pca(n,2)).^2));
-                            denom_pca = denom_pca + mean(sqrt((y_pca(mod2,1) - y_pca(n,1)).^2 + (y_pca(mod2,2) - y_pca(n,2)).^2));
+                            tmp_dist = module_sep(y_pca,mod2,n);
+                            curr_dist_pca = curr_dist_pca + tmp_dist;
                         end
                     end
-                    denom = denom/nNode;
-                    num = num/nNode;
-                    null_sep(n) = num - denom;
-                    denom_pca = denom_pca/nNode;
-                    num_pca = num_pca/nNode;
-                    null_sep_pca(n) = num_pca - denom_pca;
+                    null_sep(u) = curr_dist/nNode;
+                    null_sep_pca(u) = curr_dist_pca/nNode;
                 end
             end
-            module_sep{j} = null_sep;
+            module_sep_mds{j} = null_sep;
             module_sep_pca{j} = null_sep_pca;
         end
         
@@ -191,7 +181,7 @@ for i = 1:nGraph
     measures_struct.([graphs{i}, '_rate_distortion_upper']) = rate_distortion_upper;
     measures_struct.([graphs{i}, '_rate_distortion_lower']) = rate_distortion_lower;
     measures_struct.([graphs{i}, '_compressibility']) = compressibility;
-    measures_struct.([graphs{i}, '_module_sep']) = module_sep;
+    measures_struct.([graphs{i}, '_module_sep']) = module_sep_mds;
     measures_struct.([graphs{i}, '_module_sep_pca']) = module_sep_pca;
 end
 
@@ -219,8 +209,8 @@ plot(log10(test_betas), [measures_struct.lat_compressibility{:}], 'color', [101/
 xlabel('log10( beta )'); ylabel('Compressibility')
 saveas(gca, [img_dir, 'sim_compressibility.pdf']);
 
-null_dists = reshape([measures_struct.lat_module_sep{:}],126,nSim);
-null_dists_pca = reshape([measures_struct.lat_module_sep_pca{:}],126,nSim);
+null_dists = reshape([measures_struct.lat_module_sep{:}],K,nSim);
+null_dists_pca = reshape([measures_struct.lat_module_sep_pca{:}],K,nSim);
 figure(2); clf
 plot(log10(test_betas), null_dists, 'color', [101/255,111/255,147/255], 'linewidth', 2); hold on
 plot(log10(test_betas), [measures_struct.mod_module_sep{:}], 'color', [174/255,116/255,133/255], 'linewidth', 4);
@@ -228,7 +218,7 @@ plot(log10(test_betas), [measures_struct.mod_module_sep{:}], 'color', [174/255,1
 for b = 1:numel(beta)
     if (mod(str2double(subjs{b}),2) == 0) && (str2double(subjs{b}) ~= 6)
         plot([log10(beta(b)), log10(beta(b))],...
-            [min([measures_struct.lat_module_sep{:}])-0.2,max([measures_struct.mod_module_sep{:}])+0.2], 'k');
+            [min([measures_struct.lat_module_sep{:}]),max([measures_struct.mod_module_sep{:}])], 'k');
     end
 end
 saveas(gca, [img_dir, 'sim_mod_dist.png']);

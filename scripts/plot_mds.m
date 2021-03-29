@@ -157,8 +157,8 @@ for s = 1:numel(subjs)
     d_hat = nonzeros(triu(d_hat,1));
     stress = sqrt((sum(d_vect - d_hat)^2)/sum(d_vect.^2));
     if mod(str2double(subj),2) == 0
-        mod1 = 1:5;
-        mod2 = 6:10;
+        mod1 = 2:4;
+        mod2 = 7:9;
         %num = mean([pdist(Y(mod1,:)), pdist(Y(mod2,:))]);
         denom = 0;
         num = 0;
