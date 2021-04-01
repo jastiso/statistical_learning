@@ -105,7 +105,7 @@ for i = 1:nGraph
                     % pca
                     tmp_dist = module_sep(y_pca,mod1,n);
                     curr_dist_pca = curr_dist_pca + tmp_dist;
-                else
+                elseif any(n == mod2)
                     tmp_dist = module_sep(Y,mod2,n);
                     curr_dist = curr_dist + tmp_dist;
                     % pca
@@ -113,8 +113,8 @@ for i = 1:nGraph
                     curr_dist_pca = curr_dist_pca + tmp_dist;
                 end
             end
-            module_sep_mds{j} = curr_dist/nNode;
-            module_sep_pca{j} = curr_dist_pca/nNode;
+            module_sep_mds{j} = curr_dist/numel([mod1,mod2]);
+            module_sep_pca{j} = curr_dist_pca/numel([mod1,mod2]);
         else
             for u = 1:K
                 nodes = datasample(1:nNode, 6, 'Replace', false);
@@ -136,7 +136,7 @@ for i = 1:nGraph
                             % pca
                             tmp_dist = module_sep(y_pca,mod1,n);
                             curr_dist_pca = curr_dist_pca + tmp_dist;
-                        else
+                        elseif any(n == mod2)
                             tmp_dist = module_sep(Y,mod2,n);
                             curr_dist = curr_dist + tmp_dist;
                             % pca
@@ -144,8 +144,8 @@ for i = 1:nGraph
                             curr_dist_pca = curr_dist_pca + tmp_dist;
                         end
                     end
-                    null_sep(u) = curr_dist/nNode;
-                    null_sep_pca(u) = curr_dist_pca/nNode;
+                    null_sep(u) = curr_dist/numel(nodes);
+                    null_sep_pca(u) = curr_dist_pca/numel(nodes);
                 end
             end
             module_sep_mds{j} = null_sep;
@@ -212,7 +212,7 @@ saveas(gca, [img_dir, 'sim_compressibility.pdf']);
 null_dists = reshape([measures_struct.lat_module_sep{:}],K,nSim);
 null_dists_pca = reshape([measures_struct.lat_module_sep_pca{:}],K,nSim);
 figure(2); clf
-plot(log10(test_betas), null_dists, 'color', [101/255,111/255,147/255], 'linewidth', 2); hold on
+plot(log10(test_betas), null_dists, 'color', [101/255,111/255,147/255], 'linewidth', 0.1); hold on
 plot(log10(test_betas), [measures_struct.mod_module_sep{:}], 'color', [174/255,116/255,133/255], 'linewidth', 4);
 
 for b = 1:numel(beta)
@@ -224,7 +224,7 @@ end
 saveas(gca, [img_dir, 'sim_mod_dist.png']);
 
 figure(2); clf
-plot(log10(test_betas), null_dists_pca, 'color', [101/255,111/255,147/255], 'linewidth', 2); hold on
+plot(log10(test_betas), null_dists_pca, 'color', [101/255,111/255,147/255], 'linewidth', 0.5); hold on
 plot(log10(test_betas), [measures_struct.mod_module_sep_pca{:}], 'color', [174/255,116/255,133/255], 'linewidth', 4);
 for b = 1:numel(beta)
     if (mod(str2double(subjs{b}),2) == 0) && (str2double(subjs{b}) ~= 6)

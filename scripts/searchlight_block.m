@@ -11,6 +11,8 @@ addpath(genpath('/Users/stiso/Documents/Code/graph_learning/functions/'))
 
 % define variables
 subjs = [ {'1'},{'2'},{'3'},{'4'},{'5'},{'6'},{'7'},{'8'},{'10'},{'12'}];
+A_hat_order = load([r_dir, 'ahat_order.mat']);
+A_hat_order = A_hat_order.subjs;
 feature = 'lfp'; % pow or lfp
 freqs = logspace(log10(3), log10(150), 50);
 shift = 100; % how much to slide windows
@@ -59,6 +61,7 @@ block_data = cell2table(cell(0,6), 'VariableNames',varnames);
 
 for subj_idx = 1:numel(subjs)
     subj = subjs{subj_idx};
+    ahat_idx = find(cellfun(@(x) strcmp(subj,x),A_hat_order));
     save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
     r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
     img_dir = ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj];
@@ -111,7 +114,7 @@ for subj_idx = 1:numel(subjs)
     G = expm(A);
     % load A_hat
     load('/Users/stiso/Documents/Code/graph_learning/ECoG_data/behavior_preprocessed/max_ent.mat', 'A_hat')
-    A_hat = squeeze(A_hat(subj_idx,:,:));
+    A_hat = squeeze(A_hat(ahat_idx,:,:));
     
     % initialize data structure
     G_corr = nan(nElec,nBlock);

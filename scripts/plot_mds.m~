@@ -38,8 +38,7 @@ ring_colors = [[linspace(0, dark_blue(1), 5)'; linspace(mid_blue(1), light_blue(
 for s = 1:numel(subjs)
     subj = subjs{s};
     load([r_dir, 'subj' subj, '/searchlight_corrs.mat'], 'sig_idx', 'perm_corr')
-    ahat_idx = find(cellfun(@(x) strcmp(subj,x),A_hat_order));
-
+    
     % load stuff
     load([save_dir, subj, '/ft_data.mat'], 'ft_data')
     load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate')
@@ -137,8 +136,7 @@ for s = 1:numel(subjs)
     imagesc(D); colorbar
     D(logical(eye(nNode))) = 0;
     
-    %% MDS 
-    % neural data
+    %% MDS for each channel
     
     [Y, E] = cmdscale(D,2);
     
@@ -152,15 +150,6 @@ for s = 1:numel(subjs)
     x = D - mean(D);
     y_pca = x*coeff;
     y_pca = y_pca(:,1:2);
-    
-    % behavioral data
-    A_hat_dist = squeeze(A_hat(ahat_idx,:,:)) - diag(diag(squeeze(A_hat(ahat_idx,:,:))));
-    [Yb, ~] = cmdscale(A_hat_dist,2);
-    
-    figure(3); clf
-    scatter(Yb(:,1), Yb(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
-    title(subj)
-    saveas(gca, [img_dir, '/MDS_behave.png'], 'png')
     
     %% Get compression/separation stats
     
@@ -179,7 +168,7 @@ for s = 1:numel(subjs)
         mod2 = 7:9;
         curr_dist = 0;
         curr_dist_pca = 0;
-        for n = 1:nNode
+        %for n = 1:nNode
             mod_flag = any(n == mod1);
             
             if mod_flag
@@ -195,7 +184,7 @@ for s = 1:numel(subjs)
                 tmp_dist = module_sep(y_pca,mod2,n);
                 curr_dist_pca = curr_dist_pca + tmp_dist;
             end
-        end
+        %end
         sep(s) = curr_dist/numel([mod1,mod2]);
         sep_pca(s) = curr_dist_pca/numel([mod1,mod2]);
     else
@@ -214,16 +203,16 @@ for s = 1:numel(subjs)
                     mod_flag = any(n == mod1);
                     
                     if mod_flag
-                        tmp_dist = module_sep(Y,mod1,n);
+                        tmp_dist = module_sep(Y,mod1,mod2);
                         curr_dist = curr_dist + tmp_dist;
                         % pca
-                        tmp_dist = module_sep(y_pca,mod1,n);
+                        tmp_dist = module_sep(y_pca,mod1,mod2);
                         curr_dist_pca = curr_dist_pca + tmp_dist;
                     elseif any(n == mod2)
-                        tmp_dist = module_sep(Y,mod2,n);
+                        tmp_dist = module_sep(Y,mod2,mod1);
                         curr_dist = curr_dist + tmp_dist;
                         % pca
-                        tmp_dist = module_sep(y_pca,mod2,n);
+                        tmp_dist = module_sep(y_pca,mod2,mod1);
                         curr_dist_pca = curr_dist_pca + tmp_dist;
                     end
                 end

@@ -205,21 +205,23 @@ df_null = merge(df_null, demo, by='subj')
 comp = merge(comp, demo, by='subj')
 summary(df)
 
-stat = lm(data=df, module_dist~log10(beta)+sex+yob)
+stat = lm(data=df, module_dist~log10(beta))
 summary(stat)
 rs = list()
 for (i in unique(df_null$set)){
   tmp = dplyr::filter(df_null, is_lat == 1 & set == i)
-  rs = c(rs, cor(tmp$module_dist, log10(tmp$beta), method='spearman'))
+  rs = c(rs, cor(tmp$module_dist, log10(tmp$beta), method='pearson'))
 }
-max(unlist(rs))
-stat = cor.test(df$module_dist, log10(df$beta), method='spearman')
+plot_data = data_frame(set = unique(df_null$set), corr = unlist(rs))
+stat = cor.test(df$module_dist, log10(df$beta), method='pearson')
+
+ggplot(data=plot_data, aes(x=corr)) + geom_histogram() + theme_minimal()
 
 p = ggplot(data = df, aes(x=log10(beta), y=(module_dist))) + 
-  geom_smooth(method='lm', color='black') + geom_point(size=5, color=rgb(125/255,138/255,95/255)) + 
   theme_minimal() + 
   geom_line(data = df_null, aes(x=log10(beta), y=module_dist, group=set), stat='smooth', method='lm', 
-              color=rgb(101/255,111/255,147/255), alpha=0.1)
+              color=rgb(101/255,111/255,147/255), alpha=0.1) +
+  geom_smooth(method='lm', color='black') + geom_point(size=5, color=rgb(174/255,116/255,133/255))
 p
 ggsave("ephys_img/mod_dist_neur.svg",p)
 
@@ -229,13 +231,13 @@ p = ggplot(data = df_null, aes(x=log10(beta), y=module_dist, group=set)) +
 p
 
 
-stat = lmp(data=comp, log10(compress)~is_lat)
+stat = lmp(data=comp, log10(compress)~log10(beta)*is_lat)
 summary(stat)
 stat = perm(comp[comp$is_lat == 1,]$comp, comp[comp$is_lat == 0,]$comp)
 stat
 
 p = ggplot(data = comp, aes(x=log10(beta), y=(compress), color=is_lat, group = is_lat)) + 
-  geom_smooth(method='lm', color='black') + geom_point(size=5) + scale_color_manual(values=c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255))) + 
+  geom_smooth(method='lm', color='black') + geom_point(size=5) + scale_color_manual(values=c(rgb(101/255,111/255,147/255), rgb(174/255,116/255,133/255))) + 
   theme_minimal()
 p
 

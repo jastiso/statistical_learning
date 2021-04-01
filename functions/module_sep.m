@@ -1,4 +1,4 @@
-function [mod_sep] = module_sep(Y, mod_idx,n)
+function [mod_sep] = module_sep(Y, mod_idx1,n)
 % get the module separation based on low dimensional data points
 %   Inputs
 % Y:        N x 2 matrix where N is the number of nodes. These are the
@@ -8,7 +8,8 @@ function [mod_sep] = module_sep(Y, mod_idx,n)
 % n:        A scalar or logical vector indicating the position of the node
 %           of interest
 
-num = mean(sqrt((Y(mod_idx,1) - Y(n,1)).^2 + (Y(mod_idx,2) - Y(n,2)).^2));
+num = mean(sqrt((Y(mod_idx1,1) - Y(n,1)).^2 + (Y(mod_idx1,2) - Y(n,2)).^2));
+Y(mod_idx,:) = [];
 denom = mean(pdist(Y));
 mod_sep = num/denom;
 end
