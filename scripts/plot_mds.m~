@@ -22,6 +22,7 @@ n = 10; %total number of nodes
 null_sep = zeros(numel(subjs),K);
 null_sep_pca = zeros(numel(subjs),K);
 compressibility = zeros(numel(subjs),1);
+losses = zeros(numel(subjs,1));
 
 trans1 = [239,169,186]./255;
 trans2 = [177,191,146]./255;
@@ -38,7 +39,8 @@ ring_colors = [[linspace(0, dark_blue(1), 5)'; linspace(mid_blue(1), light_blue(
 for s = 1:numel(subjs)
     subj = subjs{s};
     load([r_dir, 'subj' subj, '/searchlight_corrs.mat'], 'sig_idx', 'perm_corr')
-    
+    ahat_idx = find(cellfun(@(x) strcmp(subj,x),A_hat_order));
+
     % load stuff
     load([save_dir, subj, '/ft_data.mat'], 'ft_data')
     load([save_dir, subj, '/header_clean.mat'], 'elec_labels', 'srate')
@@ -136,7 +138,8 @@ for s = 1:numel(subjs)
     imagesc(D); colorbar
     D(logical(eye(nNode))) = 0;
     
-    %% MDS for each channel
+    %% MDS 
+    % neural data
     
     [Y, E] = cmdscale(D,2);
     
@@ -151,6 +154,15 @@ for s = 1:numel(subjs)
     y_pca = x*coeff;
     y_pca = y_pca(:,1:2);
     
+    % behavioral data
+    A_hat_dist = squeeze(A_hat(ahat_idx,:,:)) - diag(diag(squeeze(A_hat(ahat_idx,:,:))));
+    [Yb, ~] = cmdscale(A_hat_dist,2);
+    
+    figure(3); clf
+    scatter(Yb(:,1), Yb(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
+    title(subj)
+    saveas(gca, [img_dir, '/MDS_behave.png'], 'png')
+    
     %% Get compression/separation stats
     
     [rd_upper, rd_lower, Cs, ~] = rate_distortion(D, 1, 100);
@@ -164,11 +176,21 @@ for s = 1:numel(subjs)
     d_hat = nonzeros(triu(d_hat,1));
     stress = sqrt((sum(d_vect - d_hat)^2)/sum(d_vect.^2));
     if mod(str2double(subj),2) == 0
+        % discriminability
+        ytab = table(Y(:,1), Y(:,2), 'VariableNames', [{'x1'}, {'x2'}]);
+        fit = fitcdiscr(ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        losses(s) = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        
+        % discriminability
+        ytab = table(Yb(:,1), Yb(:,2), 'VariableNames', [{'x1'}, {'x2'}]);
+        fit = fitcdiscr(ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        losses_b(s) = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        
         mod1 = 2:4;
         mod2 = 7:9;
         curr_dist = 0;
         curr_dist_pca = 0;
-        %for n = 1:nNode
+        for n = 1:nNode
             mod_flag = any(n == mod1);
             
             if mod_flag
@@ -184,7 +206,7 @@ for s = 1:numel(subjs)
                 tmp_dist = module_sep(y_pca,mod2,n);
                 curr_dist_pca = curr_dist_pca + tmp_dist;
             end
-        %end
+        end
         sep(s) = curr_dist/numel([mod1,mod2]);
         sep_pca(s) = curr_dist_pca/numel([mod1,mod2]);
     else
@@ -203,16 +225,16 @@ for s = 1:numel(subjs)
                     mod_flag = any(n == mod1);
                     
                     if mod_flag
-                        tmp_dist = module_sep(Y,mod1,mod2);
+                        tmp_dist = module_sep(Y,mod1,n);
                         curr_dist = curr_dist + tmp_dist;
                         % pca
-                        tmp_dist = module_sep(y_pca,mod1,mod2);
+                        tmp_dist = module_sep(y_pca,mod1,n);
                         curr_dist_pca = curr_dist_pca + tmp_dist;
                     elseif any(n == mod2)
-                        tmp_dist = module_sep(Y,mod2,mod1);
+                        tmp_dist = module_sep(Y,mod2,n);
                         curr_dist = curr_dist + tmp_dist;
                         % pca
-                        tmp_dist = module_sep(y_pca,mod2,mod1);
+                        tmp_dist = module_sep(y_pca,mod2,n);
                         curr_dist_pca = curr_dist_pca + tmp_dist;
                     end
                 end
@@ -247,6 +269,9 @@ for j = 1:size(null_sep,2)
 end
 %saveas(gca, ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/mod_sep.pdf'], 'pdf')
 
+figure(3); clf
+scatter(log10(beta_mod), losses(mod_idx), '.');
+
 [r,p] = corr(log(beta_mod), sep', 'type','spearman')
 
 data = table(subjs(mod_idx)', sep', beta_mod, ...
@@ -260,4 +285,8 @@ writetable(null_data, [r_dir, 'null_mod_dist.csv']);
 
 comp_data = table(subjs', compressibility, beta, ...
     'VariableNames', [{'subj'}, {'compress'}, {'beta'}]);
+writetable(comp_data, [r_dir, 'comp_data.csv']);
+
+comp_data = table(subjs', losses, losses_b, beta, ...
+    'VariableNames', [{'subj'}, {'losses'}, {'loss_beh'}, {'beta'}]);
 writetable(comp_data, [r_dir, 'comp_data.csv']);

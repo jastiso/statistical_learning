@@ -22,6 +22,7 @@ n = 10; %total number of nodes
 null_sep = zeros(numel(subjs),K);
 null_sep_pca = zeros(numel(subjs),K);
 compressibility = zeros(numel(subjs),1);
+losses = zeros(numel(subjs,1));
 
 trans1 = [239,169,186]./255;
 trans2 = [177,191,146]./255;
@@ -175,6 +176,16 @@ for s = 1:numel(subjs)
     d_hat = nonzeros(triu(d_hat,1));
     stress = sqrt((sum(d_vect - d_hat)^2)/sum(d_vect.^2));
     if mod(str2double(subj),2) == 0
+        % discriminability
+        ytab = table(Y(:,1), Y(:,2), 'VariableNames', [{'x1'}, {'x2'}]);
+        fit = fitcdiscr(ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        losses(s) = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        
+        % discriminability
+        ytab = table(Yb(:,1), Yb(:,2), 'VariableNames', [{'x1'}, {'x2'}]);
+        fit = fitcdiscr(ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        losses_b(s) = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        
         mod1 = 2:4;
         mod2 = 7:9;
         curr_dist = 0;
@@ -258,6 +269,9 @@ for j = 1:size(null_sep,2)
 end
 %saveas(gca, ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/mod_sep.pdf'], 'pdf')
 
+figure(3); clf
+scatter(log10(beta_mod), losses(mod_idx), '.');
+
 [r,p] = corr(log(beta_mod), sep', 'type','spearman')
 
 data = table(subjs(mod_idx)', sep', beta_mod, ...
@@ -271,4 +285,8 @@ writetable(null_data, [r_dir, 'null_mod_dist.csv']);
 
 comp_data = table(subjs', compressibility, beta, ...
     'VariableNames', [{'subj'}, {'compress'}, {'beta'}]);
+writetable(comp_data, [r_dir, 'comp_data.csv']);
+
+comp_data = table(subjs', losses, losses_b, beta, ...
+    'VariableNames', [{'subj'}, {'losses'}, {'loss_beh'}, {'beta'}]);
 writetable(comp_data, [r_dir, 'comp_data.csv']);

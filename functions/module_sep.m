@@ -9,7 +9,6 @@ function [mod_sep] = module_sep(Y, mod_idx1,n)
 %           of interest
 
 num = mean(sqrt((Y(mod_idx1,1) - Y(n,1)).^2 + (Y(mod_idx1,2) - Y(n,2)).^2));
-Y(mod_idx,:) = [];
 denom = mean(pdist(Y));
 mod_sep = num/denom;
 end

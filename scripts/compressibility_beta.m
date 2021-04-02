@@ -68,6 +68,8 @@ for i = 1:nGraph
     compressibility = cell(nSim, 1);
     module_sep_mds = cell(nSim,1);
     module_sep_pca = cell(nSim,1);
+    losses = cell(nSim,1);
+    losses_pca = cell(nSim,1);
     
     % Loop over beta values:
     for j = 1:nSim
@@ -87,11 +89,18 @@ for i = 1:nGraph
         x = A_hat_dist - mean(A_hat_dist);
         y_pca = x*coeff;
         y_pca = y_pca(:,1:2);
-%         figure(2); clf
-%         scatter(y_pca(:,1), y_pca(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
-%         pause(0.05)
-
+        
+        
         if strcmp(graphs{i},'mod')
+            % discriminability
+            ytab = table(Y(:,1), Y(:,2), 'VariableNames', [{'x1'}, {'x2'}]);
+            fit = fitcdiscr(ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+            losses{j} = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+            %pca
+            ytab_pca = table(y_pca(:,1), y_pca(:,2), 'VariableNames', [{'x1'}, {'x2'}]);
+            fit_pca = fitcdiscr(ytab_pca, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+            losses_pca{j} = loss(fit_pca, ytab_pca, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+            
             mod1 = 2:4;
             mod2 = 7:9;
             curr_dist = 0;
@@ -183,6 +192,8 @@ for i = 1:nGraph
     measures_struct.([graphs{i}, '_compressibility']) = compressibility;
     measures_struct.([graphs{i}, '_module_sep']) = module_sep_mds;
     measures_struct.([graphs{i}, '_module_sep_pca']) = module_sep_pca;
+    measures_struct.([graphs{i}, 'losses']) = losses;
+    measures_struct.([graphs{i}, 'losses_pca']) = losses_pca;
 end
 
 % Save measures:
@@ -234,3 +245,10 @@ for b = 1:numel(beta)
 end
 saveas(gca, [img_dir, 'sim_mod_dist_pca.png']);
 
+figure(2); clf
+plot(log10(test_betas), [measures_struct.modlosses{:}], 'color', [174/255,116/255,133/255], 'linewidth', 4);
+saveas(gca, [img_dir, 'linear_disc.png']);
+
+figure(2); clf
+plot(log10(test_betas), [measures_struct.modlosses_pca{:}], 'color', [174/255,116/255,133/255], 'linewidth', 4);
+saveas(gca, [img_dir, 'linear_disc.png']);
