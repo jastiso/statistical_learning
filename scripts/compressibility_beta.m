@@ -246,9 +246,9 @@ end
 saveas(gca, [img_dir, 'sim_mod_dist_pca.png']);
 
 figure(2); clf
-plot(log10(test_betas), [measures_struct.modlosses{:}], 'color', [174/255,116/255,133/255], 'linewidth', 4);
+plot(log10(test_betas), [measures_struct.modlosses{:}], 'color', [.4,.4,.4], 'linewidth', 3);
 saveas(gca, [img_dir, 'linear_disc.png']);
 
 figure(2); clf
-plot(log10(test_betas), [measures_struct.modlosses_pca{:}], 'color', [174/255,116/255,133/255], 'linewidth', 4);
-saveas(gca, [img_dir, 'linear_disc.png']);
+plot(log10(test_betas), [measures_struct.modlosses_pca{:}], 'color', 'grey', 'linewidth', 4);
+saveas(gca, [img_dir, 'linear_disc_pca.png']);

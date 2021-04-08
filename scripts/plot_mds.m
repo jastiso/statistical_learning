@@ -23,6 +23,9 @@ null_sep = zeros(numel(subjs),K);
 null_sep_pca = zeros(numel(subjs),K);
 compressibility = zeros(numel(subjs),1);
 losses = zeros(numel(subjs,1));
+losses_pca = zeros(numel(subjs,1));
+losses_b = zeros(numel(subjs,1));
+losses_bpca = zeros(numel(subjs,1));
 
 trans1 = [239,169,186]./255;
 trans2 = [177,191,146]./255;
@@ -157,6 +160,11 @@ for s = 1:numel(subjs)
     % behavioral data
     A_hat_dist = squeeze(A_hat(ahat_idx,:,:)) - diag(diag(squeeze(A_hat(ahat_idx,:,:))));
     [Yb, ~] = cmdscale(A_hat_dist,2);
+    % now with pca
+    coeff = pca(A_hat_dist);
+    x = A_hat_dist - mean(A_hat_dist);
+    yb_pca = x*coeff;
+    yb_pca = yb_pca(:,1:2);
     
     figure(3); clf
     scatter(Yb(:,1), Yb(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
@@ -182,9 +190,19 @@ for s = 1:numel(subjs)
         losses(s) = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
         
         % discriminability
+        ytab = table(y_pca(:,1), y_pca(:,2), 'VariableNames', [{'x1'}, {'x2'}]);
+        fit = fitcdiscr(ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        losses_pca(s) = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        
+        % discriminability
         ytab = table(Yb(:,1), Yb(:,2), 'VariableNames', [{'x1'}, {'x2'}]);
         fit = fitcdiscr(ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
         losses_b(s) = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        
+        % discriminability
+        ytab = table(yb_pca(:,1), yb_pca(:,2), 'VariableNames', [{'x1'}, {'x2'}]);
+        fit = fitcdiscr(ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        losses_bpca(s) = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
         
         mod1 = 2:4;
         mod2 = 7:9;
@@ -287,6 +305,6 @@ comp_data = table(subjs', compressibility, beta, ...
     'VariableNames', [{'subj'}, {'compress'}, {'beta'}]);
 writetable(comp_data, [r_dir, 'comp_data.csv']);
 
-comp_data = table(subjs', losses, losses_b, beta, ...
-    'VariableNames', [{'subj'}, {'losses'}, {'loss_beh'}, {'beta'}]);
-writetable(comp_data, [r_dir, 'comp_data.csv']);
+comp_data = table(subjs', losses', losses_b', losses_pca', losses_bpca', beta, ...
+    'VariableNames', [{'subj'}, {'losses'}, {'loss_beh'}, {'loss_pca'},{'losses_bpca'}, {'beta'}]);
+writetable(comp_data, [r_dir, 'loss_data.csv']);

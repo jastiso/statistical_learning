@@ -23,6 +23,8 @@ null_sep = zeros(numel(subjs),K);
 null_sep_pca = zeros(numel(subjs),K);
 compressibility = zeros(numel(subjs),1);
 losses = zeros(numel(subjs,1));
+losses_pca = zeros(numel(subjs,1));
+losses_b = zeros(numel(subjs,1));
 
 trans1 = [239,169,186]./255;
 trans2 = [177,191,146]./255;
@@ -182,6 +184,11 @@ for s = 1:numel(subjs)
         losses(s) = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
         
         % discriminability
+        ytab = table(y_pca(:,1), y_pca(:,2), 'VariableNames', [{'x1'}, {'x2'}]);
+        fit = fitcdiscr(ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        losses_pca(s) = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
+        
+        % discriminability
         ytab = table(Yb(:,1), Yb(:,2), 'VariableNames', [{'x1'}, {'x2'}]);
         fit = fitcdiscr(ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
         losses_b(s) = loss(fit, ytab, [{'1'},{'1'},{'1'},{'1'},{'1'},{'2'},{'2'},{'2'}, {'2'},{'2'}]);
@@ -288,5 +295,5 @@ comp_data = table(subjs', compressibility, beta, ...
 writetable(comp_data, [r_dir, 'comp_data.csv']);
 
 comp_data = table(subjs', losses, losses_b, beta, ...
-    'VariableNames', [{'subj'}, {'losses'}, {'loss_beh'}, {'beta'}]);
+    'VariableNames', [{'subj'}, {'losses'}, {'loss_beh'},  {'beta'}]);
 writetable(comp_data, [r_dir, 'comp_data.csv']);
