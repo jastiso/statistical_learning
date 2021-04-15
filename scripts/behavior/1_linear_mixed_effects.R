@@ -221,7 +221,7 @@ contrasts(df_acc$hand_transition) <- contr.helmert(2)/2
 contrasts(df_acc$hand) <- contr.helmert(2)/2
 contrasts(df_acc$correct) <- contr.helmert(2)/2
 contrasts(df_acc$finger) <- contr.helmert(5)
-stat_acc = glmer(data=df_acc, correct~scale((cum_trial))*is_lattice + stage_num*is_lattice + finger + hand + hand_transition + scale(log(recency_fact)) + 
+stat_acc = glmer(data=df_acc, correct~scale((cum_trial))*is_lattice + stage_num*is_lattice + finger + hand_transition + scale(log(recency_fact)) + 
                    (1 + scale((cum_trial))|workerid), 
                  family = binomial(link = "logit"))
 summary(stat_acc)
