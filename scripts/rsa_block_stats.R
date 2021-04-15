@@ -20,23 +20,26 @@ df = read.csv('ephys_analysis/block_searchlight.csv')
 demo = read.csv('behavioral_data_raw/demo.csv')
 demo$subj = as.factor(demo$subj)
 df = merge(df, demo, by='subj')
+# load behavioral data to get betas
+b_df = read.csv('ephys_analysis/ahat_seq.csv')
+b_df = b_df %>%
+  group_by(subj) %>%
+  dplyr::summarise(beta = mean(beta))
+df = merge(df, b_df, by='subj')
+# formatting stuff
+df$beta_rank = as.factor(rank(df$beta))
 df$subj = as.factor(df$subj)
 df$is_lat = as.factor(strtoi(df$subj) %% 2)
 df$norm_corr = df$corr/df$full_corr
-#There shouldn't be empy fields, and sex and yob should be here'
+#There shouldn't be empy fields, and sex, beta, and yob should be here'
 summary(df)
 
-# what about differences in final corrs
-stat = lmer(data=filter(df, space=='latent'),full_corr~is_lat +sex + yob + (1|subj))
-anova(stat)
-summary(stat)
-
-# plots! 
+## plots! 
 df$uniqueid = paste(df$subj, df$space, sep = "_")
 # average over contacts
 df_avg = dplyr::summarise(group_by(df, subj,space,block, uniqueid), is_lat = is_lat[1], mean_corr = mean(corr), sd_corr = sd(corr)/sqrt(length(corr)),
                           mean_norm_corr = mean(norm_corr), sd_norm_corr = sd(norm_corr)/sqrt(length(norm_corr)),
-                          mean_full_corr = mean(full_corr), sex = sex[1], yob = yob[1])
+                          mean_full_corr = mean(full_corr), sex = sex[1], yob = yob[1], beta = beta[1], beta_rank = beta_rank[1])
 pd = position_dodge(0.05)
 # color by space
 p = ggplot(data=df_avg, aes(x=block, y=mean_norm_corr, color=space, group=uniqueid)) + #geom_boxplot(aes(x=block, y=mean_corr, group=block), position=pd) +
@@ -54,20 +57,49 @@ p = ggplot(data=filter(df_avg,space=='latent'), aes(x=block, y=mean_norm_corr, c
   theme_minimal() + scale_color_manual(values=c(rgb(174/255,116/255,133/255),rgb(101/255,111/255,147/255)))
 p
 ggsave("ephys_img/block_rsa_graph.eps",p)
+# colored by graph values with only lines
+pd = position_dodge(0.05)
+p = ggplot(data=filter(dplyr::filter(df_avg, space=='latent')), aes(x=block, y=mean_norm_corr, color=is_lat, group=is_lat)) + 
+  geom_smooth(method='lm', alpha=0.1) + 
+  theme_minimal() + scale_color_manual(values=c(rgb(174/255,116/255,133/255), rgb(101/255,111/255,147/255))) 
+p
 
+# now, colored by beta
+pd = position_dodge(0.05)
+p = ggplot(data=filter(df_avg, space=='latent'), aes(x=block, y=mean_norm_corr, color=beta_rank, group=subj)) + #geom_boxplot(aes(x=block, y=mean_corr, group=block), position=pd) +
+  geom_errorbar(aes(ymin=mean_norm_corr-sd_norm_corr, ymax = mean_norm_corr+sd_norm_corr), color='black', width=0.01, position=pd) +
+  geom_line(position=pd) + geom_point(size=3, position=pd) + 
+  theme_minimal() + scale_color_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(10))
+p
+# colored by beta values with only lines
+pd = position_dodge(0.05)
+p = ggplot(data=filter(df_avg, space=='latent', beta < 1000), aes(x=block, y=mean_norm_corr, color=beta_rank, group=subj, fill=beta_rank)) + 
+  geom_smooth(method='lm', alpha=0.1) + 
+  theme_minimal() + scale_color_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(9)) +
+  scale_fill_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(9))
+p
+
+## Stats
 # mixed effect model - are corrs different between vis and latent spaces? do cors change over time?
 stat = lmer(data=df_avg,mean_norm_corr~block*space + sex + yob + (1|subj))
 anova(stat)
 summary(stat)
+# ttest for the first block
+stat = t.test(filter(df_avg, space=='latent', block==1)$mean_corr,
+              filter(df_avg, space=='euclid', block==1)$mean_corr, paired=TRUE)
+stat
 # what about just for the latent space? Does the graph type matter?
-stat_latent = lmer(data=dplyr::filter(df_avg, space=='latent'),mean_norm_corr~block + is_lat + sex + scale(yob) + (1|subj))
+stat_latent = lmer(data=dplyr::filter(df_avg, space=='latent'),mean_norm_corr~block*is_lat + sex + scale(yob) + (1|subj))
 anova(stat_latent)
 summary(stat_latent)
-# what about differences in final corrs
-stat = t.test(filter(df_avg, space=='latent', is_lat==1)$mean_full_corr,
-              filter(df_avg, space=='latent', is_lat==0)$mean_full_corr)
-stat
-
+# what about just for the latent space? Does the graph type matter?
+stat_latent = lmer(data=dplyr::filter(df_avg, space=='latent'),mean_norm_corr~block*is_lat + sex + scale(yob) + (1|subj))
+anova(stat_latent)
+summary(stat_latent)
+# do slopes change with betas?
+stat_latent = lmer(data=dplyr::filter(df_avg, space=='latent',beta <= 1000),mean_norm_corr~scale(block)*scale(log10(beta)) + sex + yob + (1|subj))
+anova(stat_latent)
+summary(stat_latent)
 
 ############################################# Ahat static beta
 # load simulated A_hat(t)
@@ -165,6 +197,7 @@ p = ggplot(data=bv_df, aes(x=block, y=log10(beta_block), group = subj, color=as.
 p
 ggsave("ephys_img/ahat_block.eps",p)
 
+
 # mixed effects model - any group differences over time?
 stat = lmer(data=bv_df, log10(beta_block)~scale(block) + (1|subj))
 anova(stat)
@@ -211,71 +244,6 @@ p = ggplot(data=bv_df_mturk_ext, aes(x=block)) +
   theme_minimal() 
 p
 ggsave("ephys_img/ahat_block_mturk_ext.pdf",p)
-
-
-################################################## Combined
-# for testing predictions, lets combine neural and behavioral data
-b_df_avg$sex = as.factor(b_df_avg$sex)
-b_df_avg = b_df_avg[b_df_avg$subj != '18',] # this subject doesnt have neural data
-latent_df = dplyr::filter(df, space=='latent')
-data_all = merge(b_df_avg, latent_df, by=c('subj','sex','yob','block','is_lat'))
-summary(data_all)
-data_all$beta_rank = as.factor(rank(data_all$beta))
-# get blocked correlations as a fraction of final correlation
-data_all$norm_corr = data_all$corr/data_all$full_corr 
-
-# average over contacts
-df_avg = dplyr::summarise(group_by(data_all, subj,block,beta_rank,beta), mean_corr = mean(corr), mean_norm_corr = mean(norm_corr),
-                          full_corr = mean(full_corr), sd_norm_corr = sd(norm_corr)/sqrt(length(norm_corr)), sex = sex[1], yob = yob[1],
-                          is_lat = is_lat[1])
-
-# mixed effects model - do slopes of intercepts change with beta? 
-# Here we don't test extreme values (same with all statistical tests on betas)
-stat_latent = lmer(data=dplyr::filter(df_avg, beta <= 1000),mean_norm_corr~scale(block)*scale(log10(beta)) + sex + yob + (1|subj))
-anova(stat_latent)
-summary(stat_latent)
-
-# same as above, but for graph type
-stat_latent = lmer(data=df_avg,mean_norm_corr~scale(block)*is_lat + sex + scale(yob) + (1|subj))
-anova(stat_latent)
-summary(stat_latent)
-
-# plots - colored by beta value with dots
-pd = position_dodge(0.05)
-p = ggplot(data=df_avg, aes(x=block, y=mean_norm_corr, color=beta_rank, group=subj)) + #geom_boxplot(aes(x=block, y=mean_corr, group=block), position=pd) +
-  geom_errorbar(aes(ymin=mean_norm_corr-sd_norm_corr, ymax = mean_norm_corr+sd_norm_corr), color='black', width=0.01, position=pd) +
-  geom_line(position=pd) + geom_point(size=3, position=pd) + 
-  theme_minimal() + scale_color_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(10))
-p
-
-# colored by beta values with only lines
-pd = position_dodge(0.05)
-p = ggplot(data=filter(df_avg, beta < 1000), aes(x=block, y=mean_norm_corr, color=beta_rank, group=subj, fill=beta_rank)) + 
-  geom_smooth(method='lm', alpha=0.1) + 
-  theme_minimal() + scale_color_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(9)) +
-  scale_fill_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(9))
-p
-ggsave("ephys_img/neur_sim_beta.svg",p)
-
-# plots - colored by groh value with dots
-pd = position_dodge(0.05)
-p = ggplot(data=df_avg, aes(x=block, y=mean_norm_corr, color=is_lat, group=subj)) + #geom_boxplot(aes(x=block, y=mean_corr, group=block), position=pd) +
-  geom_errorbar(aes(ymin=mean_norm_corr-sd_norm_corr, ymax = mean_norm_corr+sd_norm_corr), color='black', width=0.01, position=pd) +
-  geom_line(position=pd) + geom_point(size=3, position=pd) + 
-  theme_minimal() + scale_color_manual(values=c(rgb(174/255,116/255,133/255), rgb(101/255,111/255,147/255)))
-p
-
-# colored by graph values with only lines
-pd = position_dodge(0.05)
-p = ggplot(data=filter(df_avg, beta < 1000), aes(x=block, y=mean_norm_corr, color=is_lat, group=is_lat, fill=is_lat)) + 
-  geom_smooth(method='lm', alpha=0.1) + 
-  theme_minimal() + scale_color_manual(values=c(rgb(174/255,116/255,133/255), rgb(101/255,111/255,147/255))) +
-  scale_fill_manual(values=c(rgb(174/255,116/255,133/255), rgb(101/255,111/255,147/255)))
-p
-
-stat = lm(data=tmp, mean_corr~log10(beta) + full_corr + is_lat)
-anova(stat)
-summary(stat)
 
 
 ########################################################## Linear Disc
