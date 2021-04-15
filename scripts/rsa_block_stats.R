@@ -34,11 +34,13 @@ summary(stat)
 # plots! 
 df$uniqueid = paste(df$subj, df$space, sep = "_")
 # average over contacts
-df_avg = dplyr::summarise(group_by(df, subj,space,block, uniqueid), is_lat = is_lat[1], mean_corr = mean(corr), sd_corr = sd(corr)/sqrt(length(corr)))
+df_avg = dplyr::summarise(group_by(df, subj,space,block, uniqueid), is_lat = is_lat[1], mean_corr = mean(corr), sd_corr = sd(corr)/sqrt(length(corr)),
+                          mean_norm_corr = mean(norm_corr), sd_norm_corr = sd(norm_corr)/sqrt(length(norm_corr)),
+                          mean_full_corr = mean(full_corr), sex = sex[1], yob = yob[1])
 pd = position_dodge(0.05)
 # color by space
-p = ggplot(data=df_avg, aes(x=block, y=mean_corr, color=space, group=uniqueid)) + #geom_boxplot(aes(x=block, y=mean_corr, group=block), position=pd) +
-  geom_errorbar(aes(ymin=mean_corr-sd_corr, ymax = mean_corr+sd_corr), color='black', width=0.01, position=pd) +
+p = ggplot(data=df_avg, aes(x=block, y=mean_norm_corr, color=space, group=uniqueid)) + #geom_boxplot(aes(x=block, y=mean_corr, group=block), position=pd) +
+  geom_errorbar(aes(ymin=mean_norm_corr-sd_norm_corr, ymax = mean_norm_corr+sd_norm_corr), color='black', width=0.01, position=pd) +
   geom_line(aes(color=space),position=pd) + geom_point(aes(color=space),size=3, position=pd) + 
   theme_minimal() + scale_color_manual(values=c('grey','gold'))
 p
@@ -46,21 +48,26 @@ ggsave("ephys_img/block_rsa.eps",p)
 
 # the same, but colored by graph
 pd = position_dodge(0.05)
-p = ggplot(data=filter(df_avg,space=='latent'), aes(x=block, y=mean_corr, color=is_lat, group=uniqueid)) + #geom_boxplot(aes(x=block, y=mean_corr, group=block), position=pd) +
-  geom_errorbar(aes(ymin=mean_corr-sd_corr, ymax = mean_corr+sd_corr), color='black', width=0.01, position=pd) +
+p = ggplot(data=filter(df_avg,space=='latent'), aes(x=block, y=mean_norm_corr, color=is_lat, group=uniqueid)) + #geom_boxplot(aes(x=block, y=mean_corr, group=block), position=pd) +
+  geom_errorbar(aes(ymin=mean_norm_corr-sd_norm_corr, ymax = mean_norm_corr+sd_norm_corr), color='black', width=0.01, position=pd) +
   geom_line(aes(color=is_lat),position=pd) + geom_point(aes(color=is_lat),size=3, position=pd) + 
   theme_minimal() + scale_color_manual(values=c(rgb(174/255,116/255,133/255),rgb(101/255,111/255,147/255)))
 p
 ggsave("ephys_img/block_rsa_graph.eps",p)
 
 # mixed effect model - are corrs different between vis and latent spaces? do cors change over time?
-stat = lmer(data=df,norm_corr~block*space + sex + yob + (1|subj))
+stat = lmer(data=df_avg,mean_norm_corr~block*space + sex + yob + (1|subj))
 anova(stat)
 summary(stat)
 # what about just for the latent space? Does the graph type matter?
-stat_latent = lmer(data=filter(df, space=='latent'),full_corr~block*is_lat + sex + yob + (1|subj + elec))
+stat_latent = lmer(data=dplyr::filter(df_avg, space=='latent'),mean_norm_corr~block + is_lat + sex + scale(yob) + (1|subj))
 anova(stat_latent)
 summary(stat_latent)
+# what about differences in final corrs
+stat = t.test(filter(df_avg, space=='latent', is_lat==1)$mean_full_corr,
+              filter(df_avg, space=='latent', is_lat==0)$mean_full_corr)
+stat
+
 
 ############################################# Ahat static beta
 # load simulated A_hat(t)
@@ -271,22 +278,20 @@ anova(stat)
 summary(stat)
 
 
-##########################################################
+########################################################## Linear Disc
+# test linear discriminability both behavioral and neural data
 df = read.csv('ephys_analysis/mod_dist.csv')
-df_null = read.csv('ephys_analysis/null_mod_dist.csv')
-comp = read.csv('ephys_analysis/comp_data.csv')
 demo = read.csv('behavioral_data_raw/demo.csv')
 loss = read.csv('ephys_analysis/loss_data.csv')
 demo$subj = as.factor(demo$subj)
 demo$is_lat = as.factor(strtoi(demo$subj) %% 2)
 df = merge(df, demo, by='subj')
-df_null = merge(df_null, demo, by='subj')
-comp = merge(comp, demo, by='subj')
-loss = merge(loss,demo, by='subj')
+loss = merge(loss,demo, by='subj') # the proportion of misclassified nodes
 loss = loss[loss$is_lat==0,]
 loss = melt(loss, id=c('subj','yob','sex','beta','is_lat'))
 summary(loss)
 
+# plot loss between neural and behavioral
 pd = position_dodge(0.7)
 p = ggplot(data = dplyr::filter(loss, variable != 'loss_pca', variable != 'losses_bpca'), aes(x=variable, y=value, color=variable, group = subj)) + 
   theme_minimal() + geom_line(position=pd, color='black') +
@@ -294,11 +299,11 @@ p = ggplot(data = dplyr::filter(loss, variable != 'loss_pca', variable != 'losse
 p
 ggsave("ephys_img/loss_neur.eps",p)
 
+# paired ttest between neural and behavioral
 stat = t.test(loss[loss$variable=='losses','value'],loss[loss$variable=='loss_beh','value'],paried=TRUE)
 stat
 
-stat = t.test(loss[loss$variable=='loss_pca','value'],loss[loss$variable=='losses_bpca','value'],paried=TRUE)
-stat
+
 
 
 
