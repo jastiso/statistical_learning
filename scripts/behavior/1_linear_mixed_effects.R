@@ -13,6 +13,7 @@ library(plyr)
 setwd("/Users/stiso/Documents/Python/graphLearning/old_tasks/mTurk-10-node-breaks")
 ext = '1'
 
+# load raw data, output from python script
 df = read.csv('experiment/data/preprocessed/taskdata.csv.gz')
 summary(df)
 
@@ -27,14 +28,14 @@ p<-ggplot(acc, aes(x=total_acc)) +
 p
 summary(acc$total_acc)
 
-# only run this is some people have acc less than 80
+# only run this is some people have acc less than 80 (our exclusion criteria), otherwise it'll empty the datafram
 if (any(acc$total_acc < 80)){
 subj_rm = df$workerid == acc$workerid[acc$total_acc < 80]
 df = df[!subj_rm,]
 }
 
 ######
-# Clean up - remove columns you dont need, only get correct trials, etc
+# Clean up - remove columns you dont need, etc
 
 # might need to change this depending on the task
 df_clean = subset(df, select = -c(target,query,phase,node,event))
@@ -52,11 +53,11 @@ for (var in cat_vars){
   
 }
 
-# remove RT > 2s
+# remove RT > 2s, and < 50ms
 df_clean = filter(df_clean, rt < 2000)
 df_clean = filter(df_clean, rt > 50)
 
-# log order, and get continuous trial
+# log order, and get continuous trial (rather than resetting at blocks)
 cum_trial = df_clean$trial
 df_clean$stage_num = rep(0, times = length(cum_trial))
 for (t in 1:length(cum_trial)){
@@ -79,7 +80,7 @@ df_clean$cum_trial = cum_trial
 df_clean$log_cum_trial = log10(df_clean$cum_trial + 1)
 df_clean$trial = df_clean$trial + 1
 
-# add finger
+# add finger from key codes
 #{81:'left pinky',
 #  87:'left ring',
 #  69:'left middle',
@@ -90,8 +91,6 @@ df_clean$trial = df_clean$trial + 1
 #  73:'right middle',
 #  79:'right ring',
 #  80:'right pinky',}
-
-# log order, and get continuous trial
 finger = character(length = length(df_clean$keyCode))
 for (t in 1:length(finger)){
   curr_key = df_clean$keyCode[t]
@@ -111,7 +110,7 @@ for (t in 1:length(finger)){
 }
 df_clean$finger = as.factor(finger)
 
-
+# log transform rt
 p<-ggplot(df_clean, aes(x=rt)) + 
   geom_histogram(fill='pink', color='white')
 p
@@ -126,12 +125,9 @@ ggsave(paste( 'experiment/data/preprocessed/images/rt_log', ext,'.png', sep = ''
 
 summary(df_clean)
 
-# remove incorrect trials
+# remove incorrect trials (but save for accuracy)
 df_correct = dplyr::filter(df_clean, correct == "True" & nTries == 1)
 df_correct = subset(df_correct, select = -c(correct, nTries))
-
-#df_correct = filter(df_correct, stage != "walk_one")
-
 df_acc = filter(df_clean, nTries == 1)
 df_acc$correct = as.factor(as.integer(df_acc$correct))
 
@@ -152,20 +148,21 @@ f = function(x) {
   }
   return(y)
 }
+# for plotting purpose - take out all the other variables
 nuissance_reg = lmer(data=df_correct, rt~scale((cum_trial)) + scale(log10(trial)) + finger + hand + hand_transition + stage_num + 
                        (1 + scale((cum_trial))|workerid))
 recency_fact = lapply(df_correct$recency, f)
 df_correct$recency_fact = unlist(recency_fact)
 df_acc$recency_fact = unlist(lapply(df_acc$recency, f))
 df_modular = filter(df_correct, is_lattice == 0)
-
+# for comparing recency estimates
 recency_data = data.frame( rt = resid(nuissance_reg), lag10 = df_correct$lag10, recency = df_correct$recency, graph = as.factor(df_correct$is_lattice), 
                            subj = df_correct$workerid, recency_fact = (unlist(recency_fact)))
 p = ggplot(data=recency_data, aes(y=rt, x=recency_fact, color = graph)) + geom_jitter(alpha=0.3) + theme_minimal()
 p
 ggsave(paste( 'experiment/data/preprocessed/images/lag10_mTurk', ext,'.png', sep = ''))
 
-
+# need to average over participants to see anything other than nosie
 recency_avg <- recency_data %>%
   group_by(subj, recency_fact,graph) %>%
   dplyr::summarise(mean_rt = mean(rt)) 
@@ -198,7 +195,7 @@ write.csv(max_ent_data, file = 'data/preprocessed/residuals.csv')
 
 
 ### Modular
-# change to df modular if multiple graphs
+# change to df_modular (df_correct) if multiple (single) graphs
 # most basic
 stat_surprisal1 = lmer(data=df_modular, rt~scale((cum_trial))*is_crosscluster + stage_num + finger + hand + hand_transition + 
                         (1 + scale((cum_trial))*is_crosscluster|workerid))
@@ -229,9 +226,9 @@ summary(stat_acc)
 
 
 ##################
-# Try it again with down sampling number of subjects
+# Power analysis
 #################
-
+# if we want to see CC effect, how many people would we need?
 subjs = unique(df_modular$workerid)
 
 for (i in seq(1,10)){
@@ -243,7 +240,7 @@ for (i in seq(1,10)){
   print(anova(subset_stat))
 }
 
-# same but for no pooling
+# same but for no pooling (different model for every person)
 n.sims=100
 ps = rep (NA, n.sims)
 for (i in seq(1,n.sims)){
@@ -260,6 +257,7 @@ mean(ps)
 ###################
 # Some plots that are easier in R
 
+# average across people for each trial, grouped by finger
 avg_data = df_correct %>%
   group_by(cum_trial, keyCode) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
@@ -269,7 +267,7 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Finger') +
   theme_minimal() + scale_color_manual(values = (brewer.pal(11, "Set3"))) + labs(x = 'Trial', y = 'RT (ms)')
 ggsave(paste( 'data/preprocessed/images/rt_mTurk_finger.png', sep = ''))
 
-
+# average, but grouped by CC
 avg_cluster = df_modular %>%
   group_by(cum_trial, is_crosscluster) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw), mean_resid = mean(resid))
@@ -280,11 +278,12 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Transition') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)')
 ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_cc', ext,'.png', sep = ''))
 
-
+# average, grouped by graph
 avg_graph = df_correct %>%
   group_by(cum_trial, is_lattice) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw)/sqrt(length(rt_raw)))
 
+# average acc grouped by graph
 avg_acc = df_acc %>%
   group_by(cum_trial, is_lattice) %>%
   dplyr::summarise(mean_rt = mean(as.numeric(correct)-1), sd_rt = sd(as.numeric(correct)-1)/sqrt(length(correct)))
@@ -294,6 +293,7 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   theme_minimal() + scale_color_manual(values = (wes_palette("Royal2"))) + labs(x = 'Trial', y = 'RT (ms)')
 ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_graph', ext,'.pdf', sep = ''))
 
+# average not grouped by anything
 avg_rt = df_correct %>%
   group_by(cum_trial) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
@@ -304,6 +304,7 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   geom_ribbon(aes(x=cum_trial, y=mean_rt, ymax=mean_rt+sd_rt, ymin = mean_rt-sd_rt), color = 'grey', alpha = 0.2)
 ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk', ext,'.png', sep = ''))
 
+# if you're running a task with different probabilities, group here
 avg_prob = df_correct %>%
   group_by(cum_trial, probability) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
@@ -313,20 +314,8 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   theme_minimal() + scale_color_manual(values = (wes_palette("Royal2"))) + labs(x = 'Trial', y = 'RT (ms)')
 ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_prob', ext,'.png', sep = ''))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-#bin
+## PLots binned, to make them smoother
+#bin- all rts
 nbin = 40
 bin_data = data_frame(trial = tapply(avg_rt$cum_trial, cut(avg_rt$cum_trial, nbin), mean), mean_rt = tapply(avg_rt$mean_rt, cut(avg_rt$cum_trial, nbin), mean))
 
@@ -342,7 +331,7 @@ plot + geom_point() + geom_smooth(method='lm') + ggtitle('RT over time') +
 ggsave(paste( 'data/preprocessed/images/rt_mTurk_scatter', ext,'.png', sep = ''))
 
 
-## Graph
+## bin, grouped by Graph
 nbin = 40
 bin_data_graph= data_frame(trial = c(tapply(avg_graph$cum_trial, cut(avg_graph$cum_trial, nbin), mean), 
                                      tapply(avg_graph$cum_trial, cut(avg_graph$cum_trial, nbin), mean)),
@@ -361,7 +350,7 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   scale_fill_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))
 ggsave(paste( 'experiment/data/preprocessed/images/rt_bin_mturk_graph.pdf', sep = ''))
 
-## acc
+## bin acc, grouped by graph
 nbin = 40
 bin_data_graph_acc= data_frame(trial = c(tapply(avg_acc$cum_trial, cut(avg_acc$cum_trial, nbin), mean), 
                                      tapply(avg_acc$cum_trial, cut(avg_acc$cum_trial, nbin), mean)),
@@ -381,7 +370,7 @@ plot + geom_line(size=1) + ggtitle('Accuracy over time, by Graph') +
 ggsave(paste( 'experiment/data/preprocessed/images/rt_bin_mturk_graph_acc.pdf', sep = ''))
 
 
-# cross_cluster
+# bin rt, grouped by cross_cluster
 bin_data_cluster = data_frame(trial = c(tapply(avg_cluster$cum_trial, cut(avg_cluster$cum_trial, nbin), mean), 
                                         tapply(avg_cluster$cum_trial, cut(avg_cluster$cum_trial, nbin), mean)),
                               mean_rt = c(tapply(filter(avg_cluster, is_crosscluster == "False")$mean_rt, cut(filter(avg_cluster, is_crosscluster == "False")$cum_trial, nbin), mean), 
@@ -398,7 +387,7 @@ plot + geom_line(size=1) + ggtitle('RT over time, by transition') +
   ggsave(paste( 'experiment/data/preprocessed/images/resid_mTurk_bin_cc', ext,'.pdf', sep = ''))
   
 
-# plot difference over time    
+# plot CC difference over time with residuals   
 surprisal = data.frame( resid = unlist(bin_data_cluster[bin_data_cluster$"is_crosscluster" == "True",4] - bin_data_cluster[bin_data_cluster$"is_crosscluster" == "False",4]),
                        trials = unlist(bin_data_cluster[bin_data_cluster$"is_crosscluster" == "True",1]))
 p = ggplot(data=surprisal, aes(x=trials, y=resid))
@@ -406,7 +395,7 @@ p + geom_line() + theme_minimal()
 ggsave(paste( 'experiment/data/preprocessed/images/diff_resid', ext,'.png', sep = ''))
 
 
-# probability
+# bin, grouped by probability
 bin_data_prob = data_frame(trial = c(tapply(avg_prob$cum_trial, cut(avg_prob$cum_trial, nbin), mean), 
                                         tapply(avg_prob$cum_trial, cut(avg_prob$cum_trial, nbin), mean),
                                      tapply(avg_prob$cum_trial, cut(avg_prob$cum_trial, nbin), mean)),
@@ -423,7 +412,7 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   theme_minimal() + scale_color_manual(values = (wes_palette("Royal2"))) + labs(x = 'Trial', y = 'RT (ms)') + 
   ggsave(paste( 'experiment/data/preprocessed/images/rt_mTurk_bin_prob', ext,'.png', sep = ''))
 
-
+# probability and cluster transitions (only relevant for some tasks)
 df_correct = mutate(df_correct, ho_prob = paste(is_crosscluster, '_', probability, sep = ""))
 avg_stats = df_correct %>%
   group_by(workerid,ho_prob) %>%

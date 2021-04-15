@@ -12,6 +12,7 @@ library(plyr)
 library(lm.beta)
 setwd("/Users/stiso/Documents/Code/graph_learning/ECoG_data/")
 
+# load raw data (output of python script)
 df = read.csv('behavior_preprocessed/group_behavior.csv')
 demo = read.csv('behavioral_data_raw/demo.csv')
 df = merge(df, demo, by='subj')
@@ -19,7 +20,7 @@ summary(df)
 
 
 ######
-# Clean up - remove columns you dont need, only get correct trials, etc
+# Clean up - remove columns you dont need, etc
 
 df_clean = subset(df, select = -c(ISI_raw,onset_raw,path,resp_raw,pID))
 summary(df_clean)
@@ -40,6 +41,7 @@ for (var in cat_vars){
   
 }
 
+# log transfor RT (looks much more normal after)
 p<-ggplot(df_clean, aes(x=rt_raw)) + 
   geom_histogram(fill='pink', color='white')
 p
@@ -54,7 +56,6 @@ ggsave(paste( 'behavior_preprocessed/images/rt_log_ecog.png', sep = ''))
 summary(df_clean)
 
 # add finger
-# log order, and get continuous trial
 finger = character(length = length(df_clean$resp))
 for (t in 1:length(finger)){
   curr_key = df_clean$resp[t]
@@ -74,7 +75,7 @@ for (t in 1:length(finger)){
 }
 df_clean$finger = as.factor(finger)
 
-# remove incorrect trials
+# remove incorrect trials (but save for accuracy models)
 df_correct = dplyr::filter(df_clean, correct_raw == 1)
 df_correct = dplyr::filter(df_correct, rt_raw > 0.05)
 df_acc = dplyr::filter(df_clean, rt_raw > 0.05)
@@ -93,7 +94,7 @@ f = function(x) {
 recency_fact = lapply(df_correct$recency, f)
 df_correct$recency_fact = unlist(recency_fact)
 df_acc$recency_fact = unlist(lapply(df_acc$recency, f))
-
+# data frmae of only modular graphs
 df_modular = dplyr::filter(df_correct, graph == "modular")
 
 save(df_correct, file = 'behavior_preprocessed/clean.RData')
@@ -102,8 +103,6 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 
 #################
 # LMER
-
-# test if points makes a difference
 
 # learn and graph
 stat_learn = lmer(data=df_correct, rt~scale((order))*graph + sex + yob + finger + hand + typing_raw + hand_transition + scale(block)*graph + points + scale(log(recency_fact)) + scale(sess) + (1 + scale((order))*graph + scale(log(recency_fact)) |subj))
@@ -145,24 +144,6 @@ anova(stat_acc1, stat_acc2, test="Chisq")
 summary(stat_acc1)
 summary(stat_acc2)
 
-# permutation test: permute transition index within subject
-nSim = 500
-effect_sizes
-for (i in seq(1,nSim)){
-  
-}
-
-
-# no pooling
-stat_no_pool = lm.beta(lm(data=df_modular, rt~scale(order)*transition + finger + hand_transition +  block + scale(log(recency_fact)) +sess +  subj))
-anova(stat_no_pool)
-summary(stat_no_pool)
-
-# full pooling
-stat_pool = lm.beta(lm(data=filter(df_modular, subj == '18'), rt~scale(order)*transition + finger + hand_transition +  block + scale(log(recency_fact)) ))
-anova(stat_pool)
-summary(stat_pool)
-
 
 
 ##################
@@ -171,10 +152,11 @@ summary(stat_pool)
 plot = ggplot(data = df_correct, aes(x=rt, fill=as.factor(typing_raw)))
 plot + geom_histogram(aes(y=..density..),alpha=.8)
 
+# average over participants for each trial, grouped by graph
 avg_data = df_correct %>%
   group_by(order, graph) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw)/sqrt(length(rt_raw)))
-
+# same for acc
 avg_acc = df_acc %>%
   group_by(order, graph) %>%
   dplyr::summarise(mean_acc = mean(as.numeric(correct_raw)-1), sd_rt = sd(as.numeric(correct_raw)-1)/sqrt(length(correct_raw)))
@@ -185,7 +167,7 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   geom_ribbon(aes(x=order, y=mean_rt, ymax=mean_rt+sd_rt, ymin = mean_rt-sd_rt), color = 'grey', alpha = 0.2)
 ggsave(paste( 'behavior_preprocessed/images/rt_ECoG.png', sep = ''))
 
-
+# averages grouped by CC
 avg_cluster = filter(df_modular, sess == '1') %>%
   group_by(order, transition) %>%
   dplyr::summarise(mean_rt = mean(rt_raw), sd_rt = sd(rt_raw))
@@ -195,7 +177,7 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Transition') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)')
 ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_cc.png', sep = ''))
 
-
+# bin data to make the plots look a little smoother (grouped by cluster)
 nbin = 40
 bin_data_cluster = data_frame(trial = c(tapply(avg_cluster$order, cut(avg_cluster$order, nbin), mean), 
                                         tapply(avg_cluster$order, cut(avg_cluster$order, nbin), mean)),
@@ -210,7 +192,7 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Edge Type') +
   theme_minimal() + labs(x = 'Trial', y = 'RT (ms)') + scale_color_manual(values = c(rgb(215/255,190/255,123/255), rgb(33/255,67/255,104/255))) +
   ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_cc.pdf', sep = ''))
 
-## Graph
+## bin data that was grouped by Graph
 nbin = 40
 bin_data_graph= data_frame(trial = c(tapply(avg_data$order, cut(avg_data$order, nbin), mean), 
                                         tapply(avg_data$order, cut(avg_data$order, nbin), mean)),
@@ -229,7 +211,7 @@ plot + geom_line(size=1) + ggtitle('RT over time, by Graph') +
   scale_fill_manual(values = c(rgb(101/255,111/255,147/255), rgb(125/255,138/255,95/255)))+
   ggsave(paste( 'behavior_preprocessed/images/rt_ECoG_bin_graph.pdf', sep = ''))
 
-## acc
+## bin data grouped by graph for acc
 nbin = 40
 bin_data_graph_acc= data_frame(trial = c(tapply(avg_acc$order, cut(avg_acc$order, nbin), mean), 
                                      tapply(avg_acc$order, cut(avg_acc$order, nbin), mean)),
