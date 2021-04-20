@@ -56,13 +56,13 @@ p = ggplot(data=filter(df_avg,space=='latent'), aes(x=block, y=mean_norm_corr, c
   geom_line(aes(color=is_lat),position=pd) + geom_point(aes(color=is_lat),size=3, position=pd) + 
   theme_minimal() + scale_color_manual(values=c(rgb(174/255,116/255,133/255),rgb(101/255,111/255,147/255)))
 p
-ggsave("ephys_img/block_rsa_graph.eps",p)
 # colored by graph values with only lines
 pd = position_dodge(0.05)
 p = ggplot(data=filter(dplyr::filter(df_avg, space=='latent')), aes(x=block, y=mean_norm_corr, color=is_lat, group=is_lat)) + 
   geom_smooth(method='lm', alpha=0.1) + 
   theme_minimal() + scale_color_manual(values=c(rgb(174/255,116/255,133/255), rgb(101/255,111/255,147/255))) 
 p
+ggsave("ephys_img/block_rsa_graph.svg",p)
 
 # now, colored by beta
 pd = position_dodge(0.05)
@@ -78,6 +78,7 @@ p = ggplot(data=filter(df_avg, space=='latent', beta < 1000), aes(x=block, y=mea
   theme_minimal() + scale_color_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(9)) +
   scale_fill_manual(values=colorRampPalette(brewer.pal(9,'OrRd'))(9))
 p
+ggsave("ephys_img/block_rsa_beta.svg",p)
 
 ## Stats
 # mixed effect model - are corrs different between vis and latent spaces? do cors change over time?
@@ -261,14 +262,14 @@ summary(loss)
 
 # plot loss between neural and behavioral
 pd = position_dodge(0.7)
-p = ggplot(data = dplyr::filter(loss, variable != 'loss_pca', variable != 'losses_bpca'), aes(x=variable, y=value, color=variable, group = subj)) + 
+p = ggplot(data = dplyr::filter(loss, variable != 'losses', variable != 'loss_beh'), aes(x=variable, y=value, color=variable, group = subj)) + 
   theme_minimal() + geom_line(position=pd, color='black') +
-   geom_point(size=5, position=pd) + scale_color_manual(values=c(rgb(174/255,116/255,133/255),'darkgrey'))
+   geom_point(size=5, position=pd) + scale_color_manual(values=c('darkgrey','darkgrey'))
 p
 ggsave("ephys_img/loss_neur.eps",p)
 
 # paired ttest between neural and behavioral
-stat = t.test(loss[loss$variable=='losses','value'],loss[loss$variable=='loss_beh','value'],paried=TRUE)
+stat = t.test(loss[loss$variable=='loss_pca','value'],loss[loss$variable=='losses_bpca','value'],paried=TRUE)
 stat
 
 

@@ -250,5 +250,5 @@ plot(log10(test_betas), [measures_struct.modlosses{:}], 'color', [.4,.4,.4], 'li
 saveas(gca, [img_dir, 'linear_disc.png']);
 
 figure(2); clf
-plot(log10(test_betas), [measures_struct.modlosses_pca{:}], 'color', 'grey', 'linewidth', 4);
+plot(log10(test_betas), [measures_struct.modlosses_pca{:}], 'color', [.4,.4,.4], 'linewidth', 4);
 saveas(gca, [img_dir, 'linear_disc_pca.png']);

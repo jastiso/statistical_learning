@@ -167,7 +167,7 @@ for s = 1:numel(subjs)
     yb_pca = yb_pca(:,1:2);
     
     figure(3); clf
-    scatter(Yb(:,1), Yb(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
+    scatter(yb_pca(:,1), yb_pca(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
     title(subj)
     saveas(gca, [img_dir, '/MDS_behave.png'], 'png')
     
