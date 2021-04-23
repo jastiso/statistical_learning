@@ -13,7 +13,7 @@ addpath(genpath('/Users/stiso/Documents/Code/graph_learning/functions/'))
 subjs = [ {'1'},{'2'},{'3'},{'4'},{'5'},{'6'},{'7'},{'8'},{'10'},{'12'}];
 A_hat_order = load([r_dir, 'ahat_order.mat']);
 A_hat_order = A_hat_order.subjs;
-feature = 'lfp'; % pow or lfp
+feature = 'lfp'; % pow or lfp (_end, _mid)
 freqs = logspace(log10(3), log10(150), 50);
 shift = 100; % how much to slide windows
 win = 500; % number of trials per window
@@ -172,6 +172,21 @@ for subj_idx = 1:numel(subjs)
             % cut to same number of timepoints
             cfg = [];
             cfg.trl = [good_events(:,1), good_events(:,1) + min_dur, zeros(size(good_events,1),1)];
+            % if multiple sessions, add that
+            if isfield(ft_data, 'trialinfo')
+                cfg.trl = [cfg.trl, ft_data.trialinfo];
+            end
+            cfg.trl = cfg.trl(curr_idx,:);
+            curr_data = ft_redefinetrial(cfg,ft_data);
+            % reshape into Trial x timepoint x elec
+            feats = zeros(nTrial, nElec, size(curr_data.trial{1},2));
+            for i = 1:nTrial
+                feats(i,:,:) = curr_data.trial{i};
+            end
+        elseif strcmp(feature, 'lfp_end')
+            % cut to same number of timepoints
+            cfg = [];
+            cfg.trl = [good_events(:,2) - min_dir, good_events(:,2), zeros(size(good_events,1),1)];
             % if multiple sessions, add that
             if isfield(ft_data, 'trialinfo')
                 cfg.trl = [cfg.trl, ft_data.trialinfo];

@@ -1,6 +1,6 @@
 function [] = searchlight_rsa(subj, subj_idx, cluster_colors, nSim, feat_type)
 % performs a searchlight RSA analysis on each electrode for a given
-% subject. 
+% subject.
 %   this is mostly to help with parallelization
 
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
@@ -123,6 +123,21 @@ elseif strcmp(feat_type, 'lfp')
     for i = 1:nTrial
         feats(i,:,:) = ft_data.trial{i};
     end
+elseif strcmp(feat_type, 'lfp_end')
+    % cut to same number of timepoints
+    cfg = [];
+    cfg.trl = [good_events(:,2) - min_dur, good_events(:,2), zeros(size(good_events,1),1)];
+    % if multiple sessions, add that
+    if isfield(ft_data, 'trialinfo')
+        cfg.trl = [cfg.trl, ft_data.trialinfo];
+    end
+    cfg.trl = cfg.trl(curr_idx,:);
+    curr_data = ft_redefinetrial(cfg,ft_data);
+    % reshape into Trial x timepoint x elec
+    feats = zeros(nTrial, nElec, size(curr_data.trial{1},2));
+    for i = 1:nTrial
+        feats(i,:,:) = curr_data.trial{i};
+    end
 end
 
 %% get CV normalized euclidean distance
@@ -182,34 +197,34 @@ for e = 1:nElec
     perm_corr = zeros(nSim,nElec);
     perm_corr_null = zeros(nSim,nElec);
     for n = 1:nSim
-       % pick random split
-       split = 1;
-       while (split == 1) || (split == nTrial)
-           split = randi(nTrial);
-       end
-       % split walk
-       perm_walk = [good_walk(split:end), good_walk(1:(split-1))];
-       
-       % rerun cross validated distance measure
-       D_perm = zeros(nNode);
-       N_perm = zeros(nNode);
-       
-       for i = 1:k
-           
-           % split
-           train = true(nTrial,1);
-           train(i) = false;
-           test = ~train;
-           
-           % get dist
-           [d,m] = get_rdm(curr_feats, train, test, perm_walk, nNode);
-           D_perm = D_perm + d;
-           N_perm = N_perm + m;
-       end
-       D_perm = D_perm./N_perm;
-       D_perm(logical(eye(nNode))) = NaN;
-       perm_corr(n,e) = - corr(reshape(A_hat(tri_mask),[],1), reshape(D_perm(tri_mask),[],1));
-       perm_corr_null(n,e) = corr(reshape(dist_mat(tri_mask),[],1),reshape(D_perm(tri_mask),[],1));
+        % pick random split
+        split = 1;
+        while (split == 1) || (split == nTrial)
+            split = randi(nTrial);
+        end
+        % split walk
+        perm_walk = [good_walk(split:end), good_walk(1:(split-1))];
+        
+        % rerun cross validated distance measure
+        D_perm = zeros(nNode);
+        N_perm = zeros(nNode);
+        
+        for i = 1:k
+            
+            % split
+            train = true(nTrial,1);
+            train(i) = false;
+            test = ~train;
+            
+            % get dist
+            [d,m] = get_rdm(curr_feats, train, test, perm_walk, nNode);
+            D_perm = D_perm + d;
+            N_perm = N_perm + m;
+        end
+        D_perm = D_perm./N_perm;
+        D_perm(logical(eye(nNode))) = NaN;
+        perm_corr(n,e) = - corr(reshape(A_hat(tri_mask),[],1), reshape(D_perm(tri_mask),[],1));
+        perm_corr_null(n,e) = corr(reshape(dist_mat(tri_mask),[],1),reshape(D_perm(tri_mask),[],1));
     end
     % test if empirical corr is greater than 95% percent of nulls
     fprintf('\nFor subject %s, contact %s is more correlated than %d null models, visual sim was more correlated than %d', subj, elec, sum(A_hat_corr(e) < perm_corr(:,e)), sum(D_corr(e) > perm_corr_null(:,e)))
@@ -232,9 +247,9 @@ if flag
     write_bv_node( subj_node_file, coords.Var2(sig_idx), coords.Var3(sig_idx), coords.Var4(sig_idx),...
         A_hat_corr(sig_idx), [], elec_labels(sig_idx));
     
-     subj_node_file = [r_dir, 'subj', subj, '/D_mag_', feat_type, '.node'];
-     write_bv_node( subj_node_file, coords.Var2(sig_idx), coords.Var3(sig_idx), coords.Var4(sig_idx)...
-         , D_corr(sig_idx), [], elec_labels(sig_idx));
+    subj_node_file = [r_dir, 'subj', subj, '/D_mag_', feat_type, '.node'];
+    write_bv_node( subj_node_file, coords.Var2(sig_idx), coords.Var3(sig_idx), coords.Var4(sig_idx)...
+        , D_corr(sig_idx), [], elec_labels(sig_idx));
     
     subj_node_file = [r_dir, 'subj', subj, '/D_', feat_type, '.node'];
     write_bv_node( subj_node_file, coords.Var2(sig_null_idx), coords.Var3(sig_null_idx), coords.Var4(sig_null_idx)...
@@ -242,27 +257,27 @@ if flag
     
     % plot
     try
-    BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
-        [r_dir, 'subj', subj, '/A_hat_', feat_type, '.node'],[r_dir, 'sig_all.mat'], ...
-        ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/A_hat_brain_', feat_type, '.jpg']);
+        BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
+            [r_dir, 'subj', subj, '/A_hat_', feat_type, '.node'],[r_dir, 'sig_all.mat'], ...
+            ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/A_hat_brain_', feat_type, '.jpg']);
     catch
         fprintf('Error plotting brain map')
     end
     try
-     BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
-         [r_dir, 'subj', subj, '/D_mag_', feat_type, '.node'],[r_dir, 'sig_all.mat'], ...
-         ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/D_mag_brain_', feat_type, '.jpg']);
+        BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
+            [r_dir, 'subj', subj, '/D_mag_', feat_type, '.node'],[r_dir, 'sig_all.mat'], ...
+            ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/D_mag_brain_', feat_type, '.jpg']);
     catch
         fprintf('Error plotting brain map')
     end
     try
-    BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
-        [r_dir, 'subj', subj, '/D_', feat_type, '.node'],[r_dir, 'sig_all.mat'], ...
-        ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/D_brain_', feat_type, '.jpg']);
+        BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
+            [r_dir, 'subj', subj, '/D_', feat_type, '.node'],[r_dir, 'sig_all.mat'], ...
+            ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/subj', subj, '/D_brain_', feat_type, '.jpg']);
     catch
         fprintf('Error plotting brain map')
     end
- else
+else
     [~,I] = max(A_corr);
     fprintf('Max A correlation at %s\n', elec_labels{I})
     

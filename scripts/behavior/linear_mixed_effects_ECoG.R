@@ -108,7 +108,7 @@ save(df_correct, file = 'behavior_preprocessed/clean.RData')
 stat_learn = lmer(data=df_correct, rt~scale((order))*graph + sex + yob + finger + hand + typing_raw + hand_transition + scale(block)*graph + points + scale(log(recency_fact)) + scale(sess) + (1 + scale((order))*graph + scale(log(recency_fact)) |subj))
 anova(stat_learn)
 
-# save residuals
+  # save residuals
 df_correct$resid = resid(stat_learn)
 write.csv(df_correct, file = 'behavior_preprocessed/residuals.csv')
 

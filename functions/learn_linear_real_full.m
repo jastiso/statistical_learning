@@ -127,6 +127,7 @@ while t < max_iter && (t < 10 || diff > diffThreshold)
     
     if t == max_iter
         warning('This subject reached the maximum number of steps! You might want to increase your step size')
+        beta = NaN;
     end
     
     
