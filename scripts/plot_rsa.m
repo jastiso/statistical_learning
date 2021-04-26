@@ -13,7 +13,7 @@ r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 
 subj = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'7'}, {'8'}, {'10'}, {'12'}];
 nSim = 100;
-feat_type = 'lfp';
+feat_type = 'lfp_end';
 flag = 'all';
 if strcmp(flag,'mod')
     idx = cellfun(@(x) mod(str2double(x),2) == 0, subj);
@@ -70,13 +70,13 @@ write_bv_node( [r_dir, 'sig_all', flag, '.node'], [x;xd], [y;yd], [z;zd], [ones(
 
 BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
     [r_dir, '/sig_all', flag, '.node'],[r_dir, 'sig_all.mat'], ...
-    ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/sig_all_',flag,'.jpg']);
+    ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/sig_all_',flag, '_', feat_type, '.jpg']);
 BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
     [r_dir, '/sig_a_hat', flag, '.node'],[r_dir, 'sig_all.mat'], ...
-    ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/sig_a_hat_', flag, '.jpg']);
+    ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/sig_a_hat_', flag,'_', feat_type, '.jpg']);
 BrainNet_MapCfg('/Users/stiso/Documents/MATLAB/BrainNetViewer_20171031/Data/SurfTemplate/BrainMesh_ICBM152_smoothed.nv',...
     [r_dir, '/sig_d', flag, '.node'],[r_dir, 'sig_all.mat'], ...
-    ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/sig_d_', flag, '.jpg']);
+    ['/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_img/sig_d_', flag, '_', feat_type,'.jpg']);
 
 %% Regions barplot
 
@@ -90,7 +90,7 @@ if strcmp(flag, 'all')
     
     for s = 1:numel(subj)
         load([save_dir, subj{s}, '/header_clean.mat'], 'elec_labels')
-        load([r_dir, 'subj' subj{s}, '/searchlight_corrs.mat'], 'sig_idx', 'sig_null_idx')
+        load([r_dir, 'subj' subj{s}, '/searchlight_corrs', '_', feat_type, '.mat'], 'sig_idx', 'sig_null_idx')
         
         % load localization
         loc_folder = dir([save_dir, subj{s}]);
@@ -144,6 +144,6 @@ if strcmp(flag, 'all')
     end
     searchlight_regions = table([subj_list; subjd], [repmat('latent', numel(all_reg),1); ...
         repmat('euclid', numel(all_reg_d),1)], [all_reg; all_reg_d], 'VariableNames', {'subj', 'space', 'electrode_name'});
-    writetable(searchlight_regions, [r_dir, 'searchlight_regions.csv'])
-    writetable(localization, [r_dir, 'localization.csv']);
+    writetable(searchlight_regions, [r_dir, 'searchlight_regions', '_', feat_type, '.csv'])
+    writetable(localization, [r_dir, 'localization', '_', feat_type, '.csv']);
 end
