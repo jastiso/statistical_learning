@@ -184,3 +184,5 @@ vignettes/*.pdf
 *.txt
 *.mp3
 ./ECoG_data/
+*.eps
+*.RData
