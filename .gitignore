@@ -186,3 +186,4 @@ vignettes/*.pdf
 ./ECoG_data/
 *.eps
 *.RData
+*.node
