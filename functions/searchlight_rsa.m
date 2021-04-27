@@ -76,7 +76,7 @@ dist_mat = dist_mat(order,order);
 %% Field trip format
 
 % some useful variables
-% need at least 200 ms for power analyses, also anything short doesnt
+% need at least 200 samples for power analyses, also anything short doesnt
 % really make sense
 min_dur = min(good_events(:,2) - good_events(:,1));
 good_walk = walk(good_trials) + 1; % sswitch to matlab indexing
@@ -136,6 +136,12 @@ elseif strcmp(feat_type, 'lfp_end')
     feats = zeros(nTrial, nElec, size(ft_data.trial{1},2));
     for i = 1:nTrial
         feats(i,:,:) = ft_data.trial{i};
+    end
+elseif strcmp(feat_type, 'lfp_mid')
+    % reshape into Trial x (timepoint*elec)
+    feats = zeros(nTrial, nElec, min_dur);
+    for i = 1:nTrial
+        feats(i,:,:) = ft_data.trial{i}(:,[1:floor(min_dur/2),(end - floor(min_dur/2)):end]);
     end
 end
 
