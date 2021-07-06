@@ -33,6 +33,12 @@ df_clean$typing_raw = as.numeric(mapvalues(df_clean$typing_raw, from = c('a', 'b
 df_clean$points = TRUE
 df_clean$points[df_clean$subj %in% c(1,3,8)] = FALSE
 
+# check accuracy
+acc = dplyr::filter(df_clean) %>%
+  group_by(subj) %>%
+  dplyr::summarise(total_acc = mean(correct_raw))
+mean(acc$total_acc)
+sd(acc$total_acc)
 #make factors
 cat_vars = c('graph', 'correct_raw', 'hand','subj','hand_transition','transition', 'walk', 'points')
 for (var in cat_vars){

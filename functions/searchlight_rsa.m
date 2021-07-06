@@ -141,7 +141,7 @@ elseif strcmp(feat_type, 'lfp_mid')
     % reshape into Trial x (timepoint*elec)
     feats = zeros(nTrial, nElec, min_dur);
     for i = 1:nTrial
-        feats(i,:,:) = ft_data.trial{i}(:,[1:floor(min_dur/2),(end - floor(min_dur/2)):end]);
+        feats(i,:,:) = ft_data.trial{i}(:,[1:floor(min_dur/2),(end - ceil(min_dur/2) + 1):end]);
     end
 end
 

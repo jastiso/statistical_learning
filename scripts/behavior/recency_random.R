@@ -171,17 +171,17 @@ p
 recency_fit = lmer(data = df_clean, rt~scale(log10(trial))*graph + scale(log(recency_fact)) + finger + (1 + scale(log10(trial)) | workerid))
 summary(recency_fit)
 
-full_recency_fit = lmer(data = df_clean, rt~scale(log10(trial))*graph + scale(log(recency)) + finger + (1 + scale(log10(trial)) | workerid))
+full_recency_fit = lmer(data = df_clean, rt~scale(log10(trial))*graph + scale((recency)) + finger + (1 + scale(log10(trial)) | workerid))
 summary(full_recency_fit)
 
-recency_exp_fit = lmer(data = df_clean, rt~scale(log10(trial))*graph + scale(recency_exp) + finger + (1 + scale(log10(trial)) | workerid))
-summary(recency_exp_fit)
+lag_fit = lmer(data = df_clean, rt~scale(log10(trial))*graph + scale(lag10)+ finger + (1 + scale(log10(trial)) | workerid))
+summary(lag_fit)
 
 orig_fit = lmer(data = df_clean, rt~scale(log10(trial))*graph + scale(recency) + scale(lag10) + finger + (1 + scale(log10(trial)) | workerid))
 summary(orig_fit)
 
 anova(orig_fit, recency_fit, test="Chisq")
 anova(full_recency_fit, recency_fit, test="Chisq")
-anova(recency_exp_fit, recency_fit, test="Chisq")
+anova(lag_fit, recency_fit, test="Chisq")
 
 

@@ -15,7 +15,7 @@ r_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_analysis/';
 subjs = [{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}, {'7'}, {'8'},{'10'}, {'12'}];
 A_hat_order = load([r_dir, 'ahat_order.mat']);
 A_hat_order = A_hat_order.subjs;
-feat_type = 'lfp_end'; % pow or lfp (_end. _mid)
+feat_type = 'lfp'; % pow or lfp (_end. _mid)
 freqs = logspace(log10(3), log10(150), 50);
 
 trans1 = [253,224,239]./255;
