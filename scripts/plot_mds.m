@@ -41,7 +41,7 @@ ring_colors = [[linspace(0, dark_blue(1), 5)'; linspace(mid_blue(1), light_blue(
 
 for s = 1:numel(subjs)
     subj = subjs{s};
-    load([r_dir, 'subj' subj, '/searchlight_corrs.mat'], 'sig_idx', 'perm_corr')
+    load([r_dir, 'subj' subj, '/searchlight_corrs_', feat_type, '.mat'], 'sig_idx', 'perm_corr')
     ahat_idx = find(cellfun(@(x) strcmp(subj,x),A_hat_order));
 
     % load stuff
@@ -112,6 +112,7 @@ for s = 1:numel(subjs)
         end
     end
     feats = feats(:,sig_idx,:);
+    disp(sum(sig_idx));
     feats = reshape(feats, nTrial, sum(sig_idx)*size(feats,3), []);
     
     
@@ -148,6 +149,8 @@ for s = 1:numel(subjs)
     
     figure(2); clf
     scatter(Y(:,1), Y(:,2), 10000, colors, '.', 'MarkerFaceAlpha', 0.4)
+    xlim([min(Y(:,1))-5, max(Y(:,1))+5])
+    ylim([min(Y(:,2))-5, max(Y(:,2))+5])
     title(subj)
     saveas(gca, [img_dir, '/MDS_', feat_type, '.png'], 'png')
     

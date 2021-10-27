@@ -14,8 +14,8 @@ clc
 addpath(genpath('/Users/stiso/Documents/MATLAB/ieeg-matlab-1.13.2/'))
 
 % define variables
-HUP_ID = 'HUP213';
-subj = '7';
+HUP_ID = 'HUP222';
+subj = '13';
 sess = [];
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
 
@@ -61,7 +61,7 @@ end
 % only run this if you get an error above
 
 if save_flag
-    st = 25483.19*srate;
+    st = 26872.324218*srate;
     if ~isempty(sess)
         save([save_dir, subj, '/sess_', sess, 'start_time.mat'], 'st')
     else
@@ -85,7 +85,7 @@ data3 = data3';
 data4 = session.data.getvalues(st:dur,(floor(nElec/4)*3  + 1):nElec);
 data4 = data4';
 
-data = [data1; data2; data3; data4];
+dat = [data1; data2; data3; data4];
 
 clear data1 data2 data3 data4
 %% Save raw data before individual preprocessing
@@ -98,22 +98,22 @@ scalp_eeg_idx = ~cellfun(@(x) strcmpi(x(1),'r') | strcmpi(x(1),'l') ,labels);
 ref = cellfun(@(x) strcmpi(x,'roc') | strcmpi(x,'loc'), labels);
 rm_idx = pd_idx | scalp_eeg_idx | ref;
 elec_labels = labels(~rm_idx);
-pd = data(pd_idx,:);
-data = data(~rm_idx,:);
+pd = dat(pd_idx,:);
+dat = dat(~rm_idx,:);
 
 pd = pd(:,~(isnan(pd(1,:))));
-data = data(:,~(isnan(data(1,:))));
+dat = dat(:,~(isnan(dat(1,:))));
 
 %check that pd and data are the same length
-if size(pd,2) ~= size(data,2)
+if size(pd,2) ~= size(dat,2)
     warning('The length of your PD and data are not the same...something went wrong')
 else
     if ~isempty(sess)
-        save([save_dir, subj, '/raw_data_sess', sess, '.mat'], 'data', '-v7.3')
+        save([save_dir, subj, '/raw_data_sess', sess, '.mat'], 'dat', '-v7.3')
         save([save_dir, subj, '/raw_pd_sess', sess, '.mat'], 'pd')
         save([save_dir, subj, '/header_sess', sess, '.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
     else
-        save([save_dir, subj, '/raw_data_sess1.mat'], 'data', '-v7.3')
+        save([save_dir, subj, '/raw_data_sess1.mat'], 'dat', '-v7.3')
         save([save_dir, subj, '/raw_pd_sess1.mat'], 'pd')
         save([save_dir, subj, '/header_sess1.mat'], 'elec_labels', 'srate', 'HUP_ID', 'subj')
     end

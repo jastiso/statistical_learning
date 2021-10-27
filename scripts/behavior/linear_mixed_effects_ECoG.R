@@ -39,6 +39,11 @@ acc = dplyr::filter(df_clean) %>%
   dplyr::summarise(total_acc = mean(correct_raw))
 mean(acc$total_acc)
 sd(acc$total_acc)
+tmp = (dplyr::filter(df_clean) %>%
+         group_by(subj) %>%
+         dplyr::summarise(med_rt = median(rt_raw)))
+summary(tmp$med_rt)
+sd(tmp$med_rt)
 #make factors
 cat_vars = c('graph', 'correct_raw', 'hand','subj','hand_transition','transition', 'walk', 'points')
 for (var in cat_vars){
@@ -120,12 +125,16 @@ write.csv(df_correct, file = 'behavior_preprocessed/residuals.csv')
 
 
 ### surprisal
+contrasts(df_modular$hand_transition) <- contr.helmert(2)/2
+contrasts(df_modular$hand) <- contr.helmert(2)/2
+contrasts(df_modular$correct) <- contr.helmert(2)/2
+contrasts(df_modular$finger) <- contr.helmert(5)
+df_modular$order_sq = (scale((df_modular$order))^2)
 stat_surprisal1 = lmer(data=df_modular, rt~scale((order))*transition + sex + scale(yob) + typing_raw + finger + points + hand + hand_transition +  scale(block) + scale(log(recency_fact)) + sess + 
                          (1 + scale((order))*transition |subj))
 
 
-stat_surprisal2 = lmer(data=df_modular, rt~scale((order))*transition +sex + scale(yob) + finger + points + typing_raw + hand + hand_transition + scale(block) + scale(log(recency_fact)) + sess + 
-                         (1 + scale((order))*transition + scale(log(recency_fact)) |subj))
+stat_surprisal2 = lmer(data=df_modular, rt~scale((order))*transition + sex + yob + finger + hand + typing_raw + hand_transition + scale(block) + points + scale(log(recency_fact)) + scale(sess) + (1 + scale((order))*transition + scale(log(recency_fact)) |subj))
 # chi sq
 anova(stat_surprisal2, stat_surprisal1, test="Chisq")
 

@@ -4,7 +4,7 @@ clear
 addpath(genpath('/Users/stiso/Documents/MATLAB/ieeg-matlab-1.13.2/'))
 addpath(genpath('/Users/stiso/Documents/MATLAB/eeglab_current/'))
 % define variables
-subj = '7';
+subj = '13';
 sess = []; % can be empty
 sess_flag = ~isempty(sess);
 save_dir = '/Users/stiso/Documents/Code/graph_learning/ECoG_data/ephys_raw/';
@@ -37,10 +37,10 @@ try
 catch
     minITI = 40;
     minDuration = 50;
-    event_thresh = 5000000;
+    event_thresh = 20000;
 end
 
-events = find_events(pd(1,:), srate, minITI, minDuration, event_thresh, "show") ;
+events = find_events(pd(2,:), srate, minITI, minDuration, event_thresh, "show") ;
 events = [events.onsets events.offsets];
 
 %% Remove events that weren't marked well, or are demo

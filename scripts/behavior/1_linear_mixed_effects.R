@@ -27,7 +27,13 @@ p<-ggplot(acc, aes(x=total_acc)) +
   geom_histogram(fill='lightblue', color='white')
 p
 summary(acc$total_acc)
-
+summary(dplyr::filter(df, nTries == 1, stage != 'demo') %>%
+          group_by(workerid) %>%
+          dplyr::summarise(med_rt = median(rt)))
+tmp = (dplyr::filter(df, nTries == 1, stage != 'demo') %>%
+     group_by(workerid) %>%
+     dplyr::summarise(med_rt = median(rt)))
+sd(tmp$med_rt)
 # only run this is some people have acc less than 80 (our exclusion criteria), otherwise it'll empty the datafram
 if (any(acc$total_acc < 80)){
 subj_rm = df$workerid == acc$workerid[acc$total_acc < 80]
@@ -203,8 +209,8 @@ anova(stat_surprisal1)
 summary(stat_surprisal1)
 
 # adding lag 10 - is it useful to include this with a random slope?
-stat_surprisal2 = lmer(data=df_modular, rt~scale((cum_trial))*is_crosscluster +  stage_num + finger + hand + hand_transition + scale(log10(recency_fact)) + 
-                         (1 + scale((cum_trial))*is_crosscluster + scale((recency_fact))|workerid))
+stat_surprisal2 = lmer(data=df_modular, rt~scale((cum_trial))*is_crosscluster +  stage_num + finger + hand + hand_transition + scale(log(recency_fact)) + 
+                         (1 + scale((cum_trial))*is_crosscluster + scale(log(recency_fact))|workerid))
 anova(stat_surprisal2)
 summary(stat_surprisal2)
 
@@ -234,9 +240,9 @@ subjs = unique(df_modular$workerid)
 for (i in seq(1,10)){
   subset_subj = sample(subjs, 9, replace=FALSE)
   idx = unlist(lapply(df_modular$workerid, function(x) is.element(x, subset_subj)))
-  tmp_df = df_correct[idx,]
-  subset_stat = lmer(data=df_modular, rt~scale((cum_trial)) + scale(log(recency_fact)) + finger + hand + hand_transition + stage_num + log10(recency) + 
-                       (1 + scale((cum_trial)) + scale(log(recency_fact))|workerid))
+  tmp_df = df_modular[idx,]
+  subset_stat = lmer(data=tmp_df, rt~scale((cum_trial))*is_crosscluster +  stage_num + finger + hand + hand_transition + scale(log(recency_fact)) + 
+                      (1 + scale((cum_trial))*is_crosscluster + scale(log(recency_fact))|workerid))
   print(anova(subset_stat))
 }
 

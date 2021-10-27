@@ -11,6 +11,7 @@ library(ez)
 library(plyr)
 library(lm.beta)
 library(reshape)
+library(tidyverse)
 setwd("/Users/stiso/Documents/Code/graph_learning/ECoG_data/")
 
 ############################################################### Ephys
@@ -40,7 +41,7 @@ df$uniqueid = paste(df$subj, df$space, sep = "_")
 df_avg = dplyr::summarise(group_by(df, subj,space,block, uniqueid), is_lat = is_lat[1], mean_corr = mean(corr), sd_corr = sd(corr)/sqrt(length(corr)),
                           mean_norm_corr = mean(norm_corr), sd_norm_corr = sd(norm_corr)/sqrt(length(norm_corr)),
                           mean_full_corr = mean(full_corr), sex = sex[1], yob = yob[1], beta = beta[1], beta_rank = beta_rank[1])
-pd = position_dodge(0.05)
+pd = position_dodge(0.35)
 # color by space
 p = ggplot(data=df_avg, aes(x=block, y=mean_norm_corr, color=space, group=uniqueid)) + #geom_boxplot(aes(x=block, y=mean_corr, group=block), position=pd) +
   geom_errorbar(aes(ymin=mean_norm_corr-sd_norm_corr, ymax = mean_norm_corr+sd_norm_corr), color='black', width=0.01, position=pd) +
@@ -274,6 +275,156 @@ stat
 
 
 
+###################################################### Plot of extreme betas
+# plot the extreme values
+# get graph type 
+bv_df_mturk= read.csv('ephys_analysis/ahat_block_mturk.csv')
+bv_df_mturk$subj = as.factor(bv_df_mturk$subj)
+df_mturk = read.csv('/Users/stiso/Documents/Python/graphLearning/old_tasks/mTurk-10-node-breaks/experiment/data/preprocessed/taskdata.csv.gz')
+df_mturk_graph <- df_mturk %>%
+  select(workerid, is_lattice) %>%
+  dplyr::rename(subj = workerid)
 
+df_mturk_ext = bv_df_mturk[bv_df_mturk$beta >= 1000 | bv_df_mturk$beta <= 0,]
+df_mturk_ext$subj = as.factor(df_mturk_ext$subj)
+df_ext <- merge(df_mturk_ext, df_mturk_graph, by='subj')  
+df_ext <- df_ext %>%
+  group_by(subj, is_lattice) %>%
+  dplyr::summarise(m = mean(beta)) %>%
+  na.omit()
+df_ext$is_lattice = as.factor(df_ext$is_lattice)
+p = ggplot(data=df_ext, aes(x=as.factor(m), fill=is_lattice)) + 
+  geom_bar(position="stack", stat='count')  + scale_fill_manual(values=c(rgb(174/255,116/255,133/255), rgb(101/255,111/255,147/255))) +
+  theme_minimal() 
+p
+ggsave("ephys_img/ahat_ext.pdf",p)
+
+# add ieeg cohort
+ieeg_df_ext = df[df$beta >= 1000 | df$beta <= 0,]
+ieeg_df_ext <- ieeg_df_ext %>% select(subj,is_lat,beta) %>%
+  dplyr::rename(is_lattice = is_lat) %>%
+  group_by(subj, is_lattice) %>%
+  dplyr::summarise(m = mean(beta))
+ieeg_df_ext$subj = as.integer(ieeg_df_ext$subj)
+# add subj 18 who wasnt included in ieeg data
+ieeg_df_ext[3,'subj'] = 18
+ieeg_df_ext[3,'m'] = 0
+ieeg_df_ext[3,'is_lattice'] = as.factor(0)
+ieeg_df_ext$subj = as.factor(ieeg_df_ext$subj)
+ieeg_df_ext$cohort <- 'ieeg'
+df_ext$cohort <- 'mturk'
+df_ext_cmb <- rbind(df_ext, ieeg_df_ext)
+
+p = ggplot(data=filter(df_ext_cmb, is_lattice == 0), aes(x=as.factor(m), fill=cohort)) + 
+  geom_bar(position="stack", stat='count')  + scale_fill_manual(values=c( 'black', rgb(174/255,116/255,133/255))) +
+  theme_minimal() 
+p
+ggsave("ephys_img/ahat_ext_mod.pdf",p)
+
+p = ggplot(data=filter(df_ext_cmb, is_lattice == 1), aes(x=as.factor(m), fill=cohort)) + 
+  geom_bar(position="stack", stat='count')  + scale_fill_manual(values=c('black', rgb(101/255,111/255,147/255))) +
+  theme_minimal() 
+p
+ggsave("ephys_img/ahat_ext_lat.pdf",p)
+
+
+# beta values LMER
+df_mturk <- df_mturk %>%
+  dplyr::rename(subj = workerid) %>%
+  merge(select(df_ext, subj, m), by='subj', all=F)
+# this is all copied from the lmer script
+# might need to change this depending on the task
+df_mturk = subset(df, select = -c(target,query,phase,node,event))
+df_mturk = na.omit(df_mturk)
+# remove demo
+df_mturk = dplyr::filter(df_mturk, stage != 'demo')
+#make factors
+cat_vars = c('keyCode', 'subj', 'm', 'stage', 'hand','hand_transition','is_crosscluster', 'correct')
+for (var in cat_vars){
+  df_mturk[var] = 
+    as.factor(unlist(df_mturk[var]))
+  
+}
+# remove RT > 2s, and < 50ms
+df_mturk = filter(df_mturk, rt < 2000)
+df_mturk = filter(df_mturk, rt > 50)
+
+# log order, and get continuous trial (rather than resetting at blocks)
+cum_trial = df_mturk$trial
+df_mturk$stage_num = rep(0, times = length(cum_trial))
+for (t in 1:length(cum_trial)){
+  curr_stage = df_mturk$stage[t]
+  if (curr_stage == "walk_two"){
+    cum_trial[t] = df_mturk$trial[t] + 250
+    df_mturk$stage_num[t] = 2
+  } else if (curr_stage == "walk_three"){
+    cum_trial[t] = df_mturk$trial[t] + 250*2
+    df_mturk$stage_num[t] = 3
+  } else if (curr_stage == "walk_four"){
+    cum_trial[t] = df_mturk$trial[t] + 250*3
+    df_mturk$stage_num[t] = 4
+  } else {
+    df_mturk$stage_num[t] = 1
+  }
+}
+df_mturk$cum_trial = cum_trial  
+df_mturk$log_cum_trial = log10(df_mturk$cum_trial + 1)
+df_mturk$trial = df_mturk$trial + 1
+
+# add finger from key codes
+#{81:'left pinky',
+#  87:'left ring',
+#  69:'left middle',
+#  82:'left index',
+#  86:'left thumb',
+#  66:'right thumb',
+#  85:'right index',
+#  73:'right middle',
+#  79:'right ring',
+#  80:'right pinky',}
+finger = character(length = length(df_mturk$keyCode))
+for (t in 1:length(finger)){
+  curr_key = df_mturk$keyCode[t]
+  if (curr_key == 81 | curr_key == 80){
+    finger[t] = 'pinky'
+  } else if (curr_key == 87 | curr_key == 79){
+    finger[t] = 'ring'
+  } else if (curr_key == 69 | curr_key == 73){
+    finger[t] = 'middle'
+  } else if (curr_key == 82 | curr_key == 85){
+    finger[t] = 'index'
+  } else if (curr_key == 86 | curr_key == 66){
+    finger[t] = 'thumb'
+  } else {
+    finger[t] = NA
+  }
+}
+df_mturk$finger = as.factor(finger)
+# make rts log
+df_mturk$rt_raw = df_mturk$rt
+df_mturk$rt = log10(df_mturk$rt)
+# remove incorrect trials (but save for accuracy)
+df_mturk = dplyr::filter(df_mturk, correct == "True" & nTries == 1)
+df_mturk = subset(df_mturk, select = -c(correct, nTries))
+# helper function for reformatting recency
+stop_num = 10
+f = function(x) {
+  if (x > stop_num) {
+    y = stop_num
+  } else {
+    y = x
+  }
+  return(y)
+}
+# for plotting purpose - take out all the other variables
+recency_fact = lapply(df_mturk$recency, f)
+df_mturk$recency_fact = unlist(recency_fact)
+summary(df_mturk)
+
+# LMER
+stat_beta = lmer(data=df_mturk, rt~scale((cum_trial))*m + is_lattice + stage_num*is_lattice + finger + hand + hand_transition + scale(log(recency_fact)) + 
+                    (1 + scale((cum_trial)) + scale(log(recency_fact))|subj))
+anova(stat_beta)
+summary(stat_beta)
 
 
